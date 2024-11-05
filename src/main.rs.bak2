@@ -1,0 +1,286 @@
+use chrono::{DateTime, Utc};
+use futures::stream::{FuturesUnordered, StreamExt};
+use indicatif::ProgressBar;
+use reqwest::{cookie::*, Client};
+use serde::{Deserialize, Serialize};
+use soup::prelude::*;
+use sqlite::*;
+use std::collections::HashMap;
+use std::path::PathBuf;
+use std::sync::Arc;
+use tokio::sync::{Mutex, Semaphore};
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+struct CourseDetails {
+    title: Option<String>,
+    description: Option<String>,
+    units: Option<String>,
+    prerequisites: Option<String>,
+    department: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct SessionState {
+    cookies: HashMap<String, String>,
+    state_num: String,
+    icsid: String,
+    response: String,
+    timestamp: DateTime<Utc>,
+}
+
+#[derive(Clone)]
+struct SharedState {
+    state_num: Arc<Mutex<String>>,
+    icsid: Arc<Mutex<String>>,
+}
+
+struct CatalogScraper {
+    base_url: String,
+    shared_state: SharedState,
+    client: Client,
+    db_path: PathBuf,
+    semaphore: Arc<Semaphore>,
+}
+
+impl CatalogScraper {
+    pub fn new(db_path: &str) -> Self {
+        let jar = Arc::new(Jar::default());
+        let client = Client::builder()
+            .cookie_store(true)
+            .cookie_provider(Arc::clone(&jar))
+            .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36")
+            .build()
+            .expect("client failed to init");
+
+        let shared_state = SharedState {
+            state_num: Arc::new(Mutex::new("5".to_string())),
+            icsid: Arc::new(Mutex::new(String::new())),
+        };
+
+        let scraper = Self {
+            base_url: "https://catsched.cv.studentcenter.arizona.edu/psc/pubsaprd/UA_CATALOG/HRMS/c/ESTABLISH_COURSES.SSS_BROWSE_CATLG.GBL".to_string(),
+            shared_state,
+            client,
+            db_path: PathBuf::from(db_path),
+            semaphore: Arc::new(Semaphore::new(15)),
+        };
+
+        scraper
+    }
+
+    fn initialize_database(&self) -> Result<()> {
+        let conn = Connection::open_thread_safe(&self.db_path)?;
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS courses (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT,
+                description TEXT,
+                units TEXT,
+                prerequisites TEXT,
+                department TEXT)",
+        )?;
+        Ok(())
+    }
+
+    async fn initialize_session(&self) -> Result<()> {
+        let response = self
+            .client
+            .get(&self.base_url)
+            .send()
+            .await
+            .expect("Session did not respond");
+        let html = response.text().await.expect("Failed to get text");
+        let soup = Soup::new(&html);
+
+        if let Some(state_field) = soup.tag("input").attr("name", "ICStateNum").find() {
+            let mut state_num = self.shared_state.state_num.lock().await;
+            *state_num = state_field
+                .get("value")
+                .unwrap_or("5".to_string())
+                .to_string();
+        }
+
+        if let Some(icsid_field) = soup.tag("input").attr("name", "ICSID").find() {
+            let mut icsid = self.shared_state.icsid.lock().await;
+            *icsid = icsid_field
+                .get("value")
+                .unwrap_or("".to_string())
+                .to_string();
+        }
+
+        Ok(())
+    }
+
+    async fn get_form_data(&self, action: &str) -> HashMap<String, String> {
+        let mut data = HashMap::new();
+        data.insert("ICAJAX".to_string(), "1".to_string());
+        data.insert("ICNAVTYPEDROPDOWN".to_string(), "0".to_string());
+        data.insert("ICType".to_string(), "Panel".to_string());
+        data.insert("ICElementNum".to_string(), "0".to_string());
+        data.insert(
+            "ICStateNum".to_string(),
+            self.shared_state.state_num.lock().await.clone(),
+        );
+        data.insert("ICAction".to_string(), action.to_string());
+        data.insert(
+            "ICSID".to_string(),
+            self.shared_state.icsid.lock().await.clone(),
+        );
+        data
+    }
+
+    async fn post_with_action(&self, act: &str) -> String {
+        let response = self
+            .client
+            .post(&self.base_url)
+            .form(&self.get_form_data(act).await)
+            .send()
+            .await
+            .expect("Server did not respond to Catalog Letter Req");
+
+        let html = response.text().await.expect("Failed to get text");
+        let soup = Soup::new(&html);
+
+        if let Some(state_field) = soup.tag("input").attr("name", "ICStateNum").find() {
+            let mut state_num = self.shared_state.state_num.lock().await;
+            *state_num = state_field
+                .get("value")
+                .unwrap_or("5".to_string())
+                .to_string();
+        }
+
+        if let Some(icsid_field) = soup.tag("input").attr("name", "ICSID").find() {
+            let mut icsid = self.shared_state.icsid.lock().await;
+            *icsid = icsid_field
+                .get("value")
+                .unwrap_or("".to_string())
+                .to_string();
+        }
+        //println!("\x1b[93m{act}\x1b[0m");
+        html
+    }
+
+    async fn expand_departments(&self, letter: char) -> String {
+        println!("Fetching fresh data for letter {}", letter);
+        self.post_with_action(&format!("DERIVED_SSS_BCC_SSR_ALPHANUM_{}", letter))
+            .await;
+        self.post_with_action("DERIVED_SSS_BCC_SSS_EXPAND_ALL$97$")
+            .await
+    }
+
+    async fn extract_class_details(&self, course_id: &str) -> Option<CourseDetails> {
+        println!("Extracting details for course {}", course_id);
+
+        let html = self
+            .post_with_action(&format!("CRSE_TITLE${}", course_id))
+            .await;
+        let soup = Soup::new(&html);
+
+        let details = CourseDetails {
+            title: self.safe_extract(&soup, "id", "DERIVED_CRSECAT_DESCR200"),
+            description: self.safe_extract(&soup, "id", "SSR_CRSE_OFF_VW_DESCRLONG$0"),
+            units: self.safe_extract(&soup, "id", "DERIVED_CRSECAT_UNITS_RANGE$0"),
+            prerequisites: self.safe_extract(&soup, "id", "UA_CRSE_CHR_DER_DESCR254A$0"),
+            department: self.safe_extract(&soup, "id", "ACAD_ORG_TBL_DESCR$0"),
+        };
+
+        //return to whole page
+        self.post_with_action("DERIVED_SAA_CRS_RETURN_PB").await;
+
+        Some(details)
+    }
+
+    fn safe_extract(&self, soup: &Soup, attr_type: &str, attr_value: &str) -> Option<String> {
+        soup.tag("span")
+            .attr(attr_type, attr_value)
+            .find()
+            .map(|element| element.text())
+    }
+
+    async fn save_to_database(
+        &self,
+        details: &CourseDetails,
+        connection: &Arc<ConnectionThreadSafe>,
+    ) {
+        let query = "INSERT OR REPLACE INTO courses 
+            (title, description, units, prerequisites, department)
+            VALUES (:title,:desc,:units,:prereqs,:dep)";
+
+        let db = connection;
+        let mut statement = db.prepare(query).expect("failed to prepare query");
+        statement
+            .bind_iter::<_, (_, Value)>([
+                (":title", details.clone().title.into()),
+                (":desc", details.clone().description.into()),
+                (":units", details.clone().units.into()),
+                (":prereqs", details.clone().prerequisites.into()),
+                (":dep", details.clone().department.into()),
+            ])
+            .unwrap();
+        statement.next().unwrap();
+    }
+
+    fn extract_classes(&self, response_text: &str) -> Vec<String> {
+        let soup = Soup::new(response_text);
+        let mut ids = Vec::new();
+
+        for link in soup.tag("a").class("PSHYPERLINK").find_all() {
+            if let Some(id) = link.get("id") {
+                if id.starts_with("CRSE_TITLE$") {
+                    if let Some(id_num) = id.split('$').nth(1) {
+                        ids.push(id_num.to_string());
+                    }
+                }
+            }
+        }
+
+        ids
+    }
+
+    async fn process_class(&self, class_id: String, conn: Arc<ConnectionThreadSafe>) {
+        let _permit = self.semaphore.acquire().await.unwrap();
+        if let Some(class_details) = self.extract_class_details(&class_id).await {
+            println!("{:?}", class_details.title);
+            self.save_to_database(&class_details, &conn).await;
+        }
+    }
+
+    pub async fn process_catalog(&self, letters: Option<&str>) {
+        self.initialize_database().expect("failed to init db");
+        let conn = Arc::new(
+            Connection::open_thread_safe(&self.db_path)
+                .expect("connection to database failed to open"),
+        );
+
+        self.initialize_session()
+            .await
+            .expect("Failed to init session");
+
+        let letters = letters.unwrap_or("ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+
+        for letter in letters.chars() {
+            println!("\nProcessing letter {}...", letter);
+            let expand_text = self.expand_departments(letter).await;
+
+            let class_ids = self.extract_classes(&expand_text);
+
+            let mut futures = FuturesUnordered::new();
+
+            for class_id in class_ids {
+                let conn_clone = Arc::clone(&conn);
+                let future = self.process_class(class_id, conn_clone);
+                futures.push(future);
+            }
+
+            while let Some(_) = futures.next().await {}
+        }
+    }
+}
+
+#[tokio::main]
+pub async fn main() -> Result<()> {
+    let scraper = CatalogScraper::new("catalog.db");
+    scraper.process_catalog(None).await;
+    println!("\nProcessing complete!");
+    Ok(())
+}

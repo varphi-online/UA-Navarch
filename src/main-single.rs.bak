@@ -1,0 +1,332 @@
+mod threaded;
+use chrono::{DateTime, Utc};
+use indicatif::{ProgressBar, ProgressStyle};
+use reqwest::{cookie::*, Client};
+use serde::{Deserialize, Serialize};
+use soup::prelude::*;
+use sqlite::*;
+use std::collections::HashMap;
+use std::env;
+use std::fmt::Debug;
+use std::path::PathBuf;
+use std::sync::Arc;
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+struct CourseDetails {
+    course_number: Option<String>,
+    title: Option<String>,
+    description: Option<String>,
+    units: Option<String>,
+    prerequisites: Option<String>,
+    department: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct SessionState {
+    cookies: HashMap<String, String>,
+    state_num: String,
+    icsid: String,
+    response: String,
+    timestamp: DateTime<Utc>,
+}
+
+struct CatalogScraper {
+    base_url: String,
+    state_num: String,
+    icsid: String,
+    client: Client,
+    db_path: PathBuf,
+}
+
+impl CatalogScraper {
+    pub fn new(db_path: &str) -> Self {
+        let jar = Arc::new(Jar::default());
+        let client = Client::builder()
+            .cookie_store(true)
+            .cookie_provider(Arc::clone(&jar))
+            .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36")
+            .build()
+            .expect("Critical path error: Failed to build client");
+
+        Self {
+            base_url: "https://catsched.cv.studentcenter.arizona.edu/psc/pubsaprd/UA_CATALOG/HRMS/c/ESTABLISH_COURSES.SSS_BROWSE_CATLG.GBL".to_string(),
+            state_num: "".to_string(),
+            icsid: String::new(),
+            client,
+            db_path: PathBuf::from(db_path),
+        }
+    }
+
+    fn initialize_database(&self) -> Result<()> {
+        let conn = Connection::open_thread_safe(&self.db_path)?;
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS courses (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                department TEXT,
+                course_number TEXT,
+                title TEXT,
+                description TEXT,
+                units TEXT,
+                prerequisites TEXT
+                )",
+        )?;
+        Ok(())
+    }
+
+    async fn initialize_session(&mut self) {
+        let response = self
+            .client
+            .get(&self.base_url)
+            .send()
+            .await
+            .expect("Critical path error: Failed to iniialize a session via client");
+        let html = response.text().await.unwrap_or("".to_string());
+        let soup = Soup::new(&html);
+
+        if let Some(state_field) = soup.tag("input").attr("name", "ICStateNum").find() {
+            self.state_num = state_field
+                .get("value")
+                .unwrap_or("5".to_string())
+                .to_string();
+        }
+
+        if let Some(icsid_field) = soup.tag("input").attr("name", "ICSID").find() {
+            self.icsid = icsid_field
+                .get("value")
+                .unwrap_or("".to_string())
+                .to_string();
+        }
+    }
+
+    fn get_form_data(&self, action: &str) -> HashMap<String, String> {
+        let mut data = HashMap::new();
+        data.insert("ICAJAX".to_string(), "1".to_string());
+        data.insert("ICNAVTYPEDROPDOWN".to_string(), "0".to_string());
+        data.insert("ICType".to_string(), "Panel".to_string());
+        data.insert("ICElementNum".to_string(), "0".to_string());
+        data.insert("ICStateNum".to_string(), self.state_num.clone());
+        data.insert("ICAction".to_string(), action.to_string());
+        data.insert("ICSID".to_string(), self.icsid.clone());
+        data
+    }
+
+    async fn post_with_action(&mut self, act: &str) -> String {
+        if let Ok(response) = self
+            .client
+            .post(&self.base_url)
+            .form(&self.get_form_data(act))
+            .send()
+            .await
+        {
+            let html = response.text().await.unwrap_or("".to_string());
+            let soup = Soup::new(&html);
+
+            if let Some(state_field) = soup.tag("input").attr("name", "ICStateNum").find() {
+                self.state_num = state_field
+                    .get("value")
+                    .unwrap_or("5".to_string())
+                    .to_string();
+            }
+
+            if let Some(icsid_field) = soup.tag("input").attr("name", "ICSID").find() {
+                self.icsid = icsid_field
+                    .get("value")
+                    .unwrap_or("".to_string())
+                    .to_string();
+            }
+            //println!("\x1b[93m{act}\x1b[0m");
+            //
+            html
+        } else {
+            println!("Server did not respond to Catalog Letter Req");
+            "".to_string()
+        }
+    }
+
+    async fn expand_departments(&mut self, letter: char) -> String {
+        //println!("Fetching fresh data for letter {}", letter);
+        self.post_with_action(&format!("DERIVED_SSS_BCC_SSR_ALPHANUM_{}", letter))
+            .await;
+        self.post_with_action("DERIVED_SSS_BCC_SSS_EXPAND_ALL$97$")
+            .await
+    }
+
+    async fn extract_class_details(&mut self, course_id: &str) -> Option<CourseDetails> {
+        //println!("Extracting details for course {}", course_id);
+
+        let html = self
+            .post_with_action(&format!("CRSE_TITLE${}", course_id))
+            .await;
+        let soup = Soup::new(&html);
+
+        let title = self
+            .safe_extract(&soup, "id", "DERIVED_CRSECAT_DESCR200")
+            .unwrap_or_else(|| {
+                println!("title parse fail");
+                "Placeholder Placeholder - Fail to parse".to_string()
+            });
+
+        let split: Vec<&str> = title.split(" ").collect();
+
+        let details = CourseDetails {
+            department: Some(split.first().unwrap_or(&"FAILSTATE").trim().to_string()),
+            course_number: Some(split.get(1).unwrap_or(&"FAILSTATE").trim().to_string()),
+            title: Some(split[3..].join(" ").trim().to_string()),
+            description: self.safe_extract(&soup, "id", "SSR_CRSE_OFF_VW_DESCRLONG$0"),
+            units: self.safe_extract(&soup, "id", "DERIVED_CRSECAT_UNITS_RANGE$0"),
+            prerequisites: self.safe_extract(&soup, "id", "UA_CRSE_CHR_DER_DESCR254A$0"),
+        };
+
+        //return to whole page
+        self.post_with_action("DERIVED_SAA_CRS_RETURN_PB").await;
+
+        Some(details)
+    }
+
+    fn safe_extract(&self, soup: &Soup, attr_type: &str, attr_value: &str) -> Option<String> {
+        soup.tag("span")
+            .attr(attr_type, attr_value)
+            .find()
+            .map(|element| element.text())
+    }
+
+    async fn save_to_database(
+        &self,
+        details: &CourseDetails,
+        connection: &Arc<ConnectionThreadSafe>,
+    ) {
+        let query = "INSERT OR REPLACE INTO courses 
+            (department, course_number, title, description, units, prerequisites)
+            VALUES (:dep,:cn,:title,:desc,:units,:prereqs)";
+
+        let db = connection;
+        if let Ok(mut statement) = db.prepare(query) {
+            match statement.bind_iter::<_, (_, Value)>([
+                (":title", details.clone().title.into()),
+                (":desc", details.clone().description.into()),
+                (":units", details.clone().units.into()),
+                (":prereqs", details.clone().prerequisites.into()),
+                (":dep", details.clone().department.into()),
+                (":cn", details.clone().course_number.into()),
+            ]) {
+                Ok(()) => {
+                    let _ = statement.next().unwrap_or_else(|_| {
+                        println!(
+                            "Failed to advance Database state to prepared query for course: {:?} {:?}",
+                            details.title, details.course_number
+                        );
+                        sqlite::State::Done
+                    });
+                }
+                Err(_) => {
+                    println!(
+                        "Failed to bind some course data to a prepared query for course: {:?} {:?}",
+                        details.title, details.course_number
+                    )
+                }
+            }
+        } else {
+            println!(
+                "Failed to prepare a database query for course: {:?} {:?}",
+                details.title, details.course_number
+            )
+        }
+    }
+
+    fn extract_classes(&self, response_text: &str) -> usize {
+        let soup = Soup::new(response_text);
+        let mut ids = Vec::new();
+
+        for link in soup.tag("a").class("PSHYPERLINK").find_all() {
+            if let Some(id) = link.get("id") {
+                if id.starts_with("CRSE_TITLE$") {
+                    if let Some(id_num) = id.split('$').nth(1) {
+                        ids.push(id_num.to_string());
+                    }
+                }
+            }
+        }
+
+        ids.len()
+    }
+
+    pub async fn process_catalog(&mut self, letters: &str, start_idx: Option<String>) {
+        self.initialize_database()
+            .expect("Critical path error: Failed to initialize database");
+        let conn = Arc::new(
+            Connection::open_thread_safe(&self.db_path)
+                .expect("Critical path error: Failed to open a connection to initialized database"),
+        );
+
+        self.initialize_session().await;
+
+        let mut first_iter = true;
+
+        for letter in letters.chars() {
+            println!("\nProcessing departments under {}...", letter);
+            let start = if first_iter {
+                first_iter = false;
+                match start_idx.clone() {
+                    Some(idx) => {
+                        println!("(Starting from the {}th course)", idx);
+                        idx.as_str().parse::<usize>().unwrap_or(0_usize)
+                    }
+                    None => 0,
+                }
+            } else {
+                0
+            };
+
+            let expand_text = self.expand_departments(letter).await;
+
+            let class_ids = self.extract_classes(&expand_text);
+
+            let bar = ProgressBar::new((class_ids - start) as u64);
+            bar.set_style(
+                ProgressStyle::with_template(
+                    "{msg}\n{wide_bar} [{pos}/{len}]\nElapsed: [{elapsed_precise}] | ETA: [{eta_precise}]",
+                )
+                .unwrap_or(ProgressStyle::default_bar()),
+            );
+
+            for class_id in start..class_ids {
+                if let Some(class_details) = self
+                    .extract_class_details(class_id.to_string().as_str())
+                    .await
+                {
+                    //println!("{:?}", class_details.title);
+                    self.save_to_database(&class_details, &conn).await;
+                    bar.set_message(format!(
+                        "{} {} - {}",
+                        class_details
+                            .department
+                            .unwrap_or("FAILSTATE DEPARTMENT".to_string()),
+                        class_details
+                            .course_number
+                            .unwrap_or("FAILSTATE COURSE NUM".to_string()),
+                        class_details.title.unwrap_or("FAILSTATE TITLE".to_string())
+                    ));
+                } else {
+                    println!(
+                        "Failed to extract class details for course: CRSE_TITLE${}",
+                        class_id
+                    )
+                }
+                bar.inc(1);
+            }
+            bar.finish();
+        }
+    }
+}
+
+#[tokio::main]
+pub async fn main() -> Result<()> {
+    let letters: String = env::args()
+        .nth(1)
+        .unwrap_or("ABCDEFGHIJKLMNOPQRSTUVWXYZ".to_string());
+    let start_idx: Option<String> = env::args().nth(2);
+    let mut scraper = CatalogScraper::new("catalog.db");
+    scraper.process_catalog(&letters, start_idx).await;
+    println!("\nProcessing complete!");
+    Ok(())
+}
