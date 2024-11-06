@@ -1,0 +1,3 @@
+db_backups/**/*
+target/**/*
+cached_catalog/**/*

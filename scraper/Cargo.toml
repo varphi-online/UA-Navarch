@@ -1,5 +1,5 @@
 [package]
-name = "UAScrape"
+name = "Navarch"
 version = "0.1.0"
 edition = "2021"
 
@@ -8,10 +8,7 @@ regex = "1.11"
 futures = "0.3"
 indicatif = "0.17.8"
 reqwest = { version = "0.12", features = ["cookies"] }
-soup = "0.5"
 tokio = { version = "1.0", features = ["full"] }
 sqlite = "0.36.1"
-serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-chrono = { version = "0.4", features = ["serde"] }
-anyhow = "1.0"
+html5ever = "0.29.0"

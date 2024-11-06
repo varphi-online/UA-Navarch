@@ -1,53 +1,25 @@
-//use chrono::{DateTime, Utc};
-use futures::future;
-use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
-use regex::*;
-use reqwest::{cookie::*, header::HeaderMap, Client};
-use serde::{Deserialize, Serialize};
-//use soup::prelude::*;
-use sqlite::*;
+use regex::Regex;
+use reqwest::{cookie::Jar, header::HeaderMap, Client};
+use std::collections::HashMap;
+use std::fs::{create_dir_all, write};
 use std::sync::{
-    atomic::{AtomicBool, AtomicU64, Ordering},
+    atomic::{AtomicU64, Ordering},
     Arc,
 };
 use std::time::Duration;
-use std::{collections::HashMap, env, fmt::Debug, fs, io::Write};
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-struct CourseDetails {
-    course_number: Option<String>,
-    title: Option<String>,
-    description: Option<String>,
-    units: Option<String>,
-    prerequisites: Option<String>,
-    department: Option<String>,
-}
+#[cfg(debug_assertions)]
+use std::fs::OpenOptions;
+#[cfg(debug_assertions)]
+use std::io::Write;
 
-/*
-#[derive(Debug, Serialize, Deserialize)]
-struct SessionState {
-    cookies: HashMap<String, String>,
-    state_num: String,
-    icsid: String,
-    response: String,
-    timestamp: DateTime<Utc>,
-}
-*/
-
-struct ScraperClient {
+pub struct ScraperClient {
     base_url: String,
-    state_num: String,
+    pub state_num: String,
     icsid: String,
     client: Client,
     id: u64,
     cookies: Arc<Jar>,
-}
-
-#[derive(Clone)]
-struct CatalogScraper {
-    base_url: String,
-    cache_path: String,
-    //db_path: PathBuf,
 }
 
 impl ScraperClient {
@@ -110,7 +82,7 @@ impl ScraperClient {
             .to_string();
 
         #[cfg(debug_assertions)]
-        fs::OpenOptions::new()
+        OpenOptions::new()
             .append(true)
             .open("./logfile")
             .unwrap()
@@ -124,7 +96,7 @@ impl ScraperClient {
             .unwrap();
     }
 
-    async fn initialize_session(&mut self) {
+    pub async fn initialize_session(&mut self) {
         let response = self
             .client
             .get(&self.base_url)
@@ -133,7 +105,7 @@ impl ScraperClient {
             .expect("Critical path error: Failed to iniialize a session via client");
         let html = response.text().await.unwrap_or("".to_string());
         #[cfg(debug_assertions)]
-        fs::OpenOptions::new()
+        OpenOptions::new()
             .append(true)
             .open("./logfile")
             .unwrap()
@@ -191,7 +163,7 @@ impl ScraperClient {
         data.insert("DERIVED_SAA_CRS_TERM_ALT", &binding);
 
         #[cfg(debug_assertions)]
-        fs::OpenOptions::new()
+        OpenOptions::new()
             .append(true)
             .open("./logfile")
             .unwrap()
@@ -217,25 +189,10 @@ impl ScraperClient {
 
         let html = response.text().await.unwrap_or("".to_string());
         self.update_state(html.clone());
-        //println!("\x1b[93m{act}\x1b[0m");
-        /*
-                fs::OpenOptions::new()
-                    .append(true)
-                    .open("./logfile")
-                    .unwrap()
-                    .write_all(
-                        format!(
-                            "{} | Posted action to client: {:?}\nGot back:{:?}\n",
-                            self.id, act, response_headers
-                        )
-                        .as_bytes(),
-                    )
-                    .unwrap();
-        */
         html
     }
 
-    async fn expand_departments(&mut self, letter: char) -> String {
+    pub async fn expand_departments(&mut self, letter: char) -> String {
         //println!("Fetching fresh data for letter {}", letter);
         self.post_with_action(&format!("DERIVED_SSS_BCC_SSR_ALPHANUM_{}", letter), None)
             .await;
@@ -243,7 +200,7 @@ impl ScraperClient {
             .await
     }
 
-    async fn extract_class_details(&mut self, course_id: &str, root: String) {
+    pub async fn extract_class_details(&mut self, course_id: &str, root: String) {
         tokio::time::sleep(Duration::from_millis(100)).await;
         //println!("Extracting details for course {}", course_id);
 
@@ -251,7 +208,7 @@ impl ScraperClient {
         let html = self
             .post_with_action(&format!("CRSE_TITLE${}", course_id), None)
             .await;
-        fs::write(format!("{}/course_info.html", &root), html).unwrap();
+        write(format!("{}/course_info.html", &root), html).unwrap();
 
         //Open class sections
         self.post_with_action("DERIVED_SAA_CRS_SSR_PB_GO", None)
@@ -263,7 +220,7 @@ impl ScraperClient {
             .await;
 
         if let Some(sections) = get_highest_class_section(&html) {
-            fs::create_dir_all(format!("{}/sections/", &root)).unwrap();
+            create_dir_all(format!("{}/sections/", &root)).unwrap();
             for section in 0..sections + 1 {
                 let html = self
                     .post_with_action(
@@ -271,7 +228,7 @@ impl ScraperClient {
                         Some("2251".to_string()),
                     )
                     .await;
-                fs::write(format!("{}/sections/section_{section}.html", &root), html).unwrap();
+                write(format!("{}/sections/section_{section}.html", &root), html).unwrap();
                 self.post_with_action("CLASS_SRCH_WRK2_SSR_PB_CLOSE", None)
                     .await;
             }
@@ -372,177 +329,6 @@ impl ScraperClient {
         }
     }
     */
-}
-
-impl CatalogScraper {
-    pub fn new(/*db_path: &str,*/ cache_path: &str) -> Self {
-        Self {
-            base_url: "https://catsched.cv.studentcenter.arizona.edu/psc/pubsaprd/UA_CATALOG/HRMS/c/ESTABLISH_COURSES.SSS_BROWSE_CATLG.GBL".to_string(),
-            cache_path: cache_path.to_string(),
-            //db_path: PathBuf::from(db_path),
-        }
-    }
-    /*
-        fn initialize_database(&self) -> Result<()> {
-            let conn = Connection::open_thread_safe(&self.db_path)?;
-            conn.execute(
-                "CREATE TABLE IF NOT EXISTS courses (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    department TEXT,
-                    course_number TEXT,
-                    title TEXT,
-                    description TEXT,
-                    units TEXT,
-                    prerequisites TEXT
-                    )",
-            )?;
-            Ok(())
-        }
-        pub fn rip_to_db(&self) {
-            self.initialize_database()
-                .expect("Critical path error: Failed to initialize database");
-            let conn = Arc::new(
-                Connection::open_thread_safe(&self.db_path)
-                    .expect("Critical path error: Failed to open a connection to initialized database"),
-            );
-        }
-    */
-    pub async fn rip_html(
-        &self,
-        letters: &str,
-        start_idx: Option<String>,
-        thread_count: usize,
-    ) -> Result<()> {
-        // Create cache directory
-        if let Err(e) = fs::create_dir(&self.cache_path) {
-            if e.kind() != std::io::ErrorKind::AlreadyExists {
-                println!("Failed to create cache directory: {}", e);
-            }
-        }
-
-        let letters: Vec<char> = letters.chars().collect();
-        let first_iter = Arc::new(AtomicBool::new(true));
-        let multi_progress = Arc::new(MultiProgress::new());
-        let unique = Arc::new(AtomicU64::new(0));
-
-        // Process letters in chunks
-        for chunk in letters.chunks(thread_count) {
-            let mut handles = Vec::new();
-
-            for &letter in chunk {
-                let url = self.base_url.clone();
-                let root = self.cache_path.clone();
-                let start_idx = start_idx.clone();
-                let first_iter = Arc::clone(&first_iter);
-                let multi_progress = Arc::clone(&multi_progress);
-                let unique = Arc::clone(&unique);
-
-                let handle = tokio::spawn(async move {
-                    let start = if first_iter
-                        .compare_exchange(true, false, Ordering::SeqCst, Ordering::SeqCst)
-                        .is_ok()
-                    {
-                        match start_idx.clone() {
-                            Some(idx) => {
-                                println!("(Starting from the {}th course)", idx);
-                                idx.as_str().parse::<usize>().unwrap_or(0_usize)
-                            }
-                            None => 0,
-                        }
-                    } else {
-                        0
-                    };
-
-                    //println!("Starting processing for letter: {}", letter);
-                    let letter_path = format!("{}{}_deps", root, letter);
-
-                    // Create letter directory
-                    if let Err(e) = fs::create_dir(&letter_path) {
-                        if e.kind() != std::io::ErrorKind::AlreadyExists {
-                            println!("Failed to create letter directory: {}", e);
-                            return;
-                        }
-                    }
-
-                    let mut client = ScraperClient::new(&url, Arc::clone(&unique));
-                    client.initialize_session().await;
-                    let spinner = multi_progress.add(ProgressBar::new_spinner());
-                    spinner.set_style(
-                        ProgressStyle::default_spinner()
-                            .template("{spinner:.green} {msg}")
-                            .unwrap(),
-                    );
-
-                    spinner.set_message(format!("Expanding departments for letter {}", letter));
-                    spinner.enable_steady_tick(Duration::from_millis(50));
-
-                    let expand_text = client.expand_departments(letter).await;
-                    spinner.finish_and_clear();
-
-                    let course_ids =
-                        get_highest_course_number(expand_text.as_str()).unwrap() as usize;
-
-                    let progress_bar = multi_progress.add(ProgressBar::new(course_ids as u64));
-                    progress_bar.set_style(
-                    ProgressStyle::with_template(
-                        "{msg}\n{wide_bar} [{pos}/{len}]\nElapsed: [{elapsed_precise}] | ETA: [{eta_precise}]",
-                    )
-                    .unwrap()
-                );
-                    progress_bar.set_message(format!(
-                        "Processing letter: {}..{}",
-                        letter, client.state_num
-                    ));
-
-                    for id in start..course_ids {
-                        fs::create_dir_all(format!("{}/course_{id}/", &letter_path)).unwrap();
-
-                        client
-                            .extract_class_details(
-                                id.to_string().as_str(),
-                                format!("{}/course_{id}/", &letter_path),
-                            )
-                            .await;
-
-                        progress_bar.inc(1);
-                    }
-                    progress_bar
-                        .finish_with_message(format!("Completed processing letter: {}", letter));
-                    //fs::write(format!("{}/{}.html", &letter_path, letter), &expand_text);
-                });
-
-                handles.push(handle);
-            }
-
-            // Wait for all handles in this chunk to complete
-            let _ = future::try_join_all(handles.into_iter()).await;
-        }
-
-        Ok(())
-    }
-}
-
-#[tokio::main]
-pub async fn main() {
-    let cache_path = "./cached_catalog/";
-    let letters: String = env::args()
-        .nth(1)
-        .unwrap_or("ABCDEFGHIJKLMNOPRSTUVW".to_string());
-    let start_idx: Option<String> = env::args().nth(2);
-
-    println!("Starting catalog scraping with letters: {}", letters);
-
-    let scraper = CatalogScraper::new(/*"catalog.db",*/ cache_path);
-    scraper.rip_html(&letters, start_idx, 22).await.unwrap();
-    println!("\nProcessing complete!");
-}
-
-fn get_highest_course_number(text: &str) -> Option<u32> {
-    let re = Regex::new(r"CRSE_TITLE\$\d+").unwrap();
-
-    re.find_iter(text)
-        .filter_map(|m| m.as_str().split('$').last()?.parse::<u32>().ok())
-        .max()
 }
 
 fn get_highest_class_section(text: &str) -> Option<u32> {
