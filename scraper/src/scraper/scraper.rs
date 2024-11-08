@@ -8,7 +8,7 @@ use std::sync::{
     atomic::{AtomicBool, AtomicU64, Ordering},
     Arc,
 };
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 #[derive(Clone)]
 pub struct CatalogScraper {
@@ -55,20 +55,18 @@ impl CatalogScraper {
                 let unique = Arc::clone(&unique);
 
                 let handle = tokio::spawn(async move {
-                    let start = if first_iter
+                    let start: usize = if first_iter
                         .compare_exchange(true, false, Ordering::SeqCst, Ordering::SeqCst)
                         .is_ok()
                     {
-                        match start_idx.clone() {
-                            Some(idx) => {
-                                println!("(Starting from the {}th course)", idx);
-                                idx.as_str().parse::<usize>().unwrap_or(0_usize)
-                            }
-                            None => 0,
-                        }
+                        start_idx.unwrap_or("0".to_string()).parse().unwrap_or(0)
                     } else {
                         0
                     };
+
+                    if start != 0 {
+                        println!("Jumping to {start}");
+                    }
 
                     //println!("Starting processing for letter: {}", letter);
                     let letter_path = format!("{}{}_deps", root, letter);
@@ -90,7 +88,7 @@ impl CatalogScraper {
                             .unwrap(),
                     );
 
-                    spinner.set_message(format!("Expanding departments for letter {}", letter));
+                    spinner.set_message(format!("Fetching courses under \"{}\"", letter));
                     spinner.enable_steady_tick(Duration::from_millis(50));
 
                     let expand_text = client.expand_departments(letter).await;
@@ -99,32 +97,79 @@ impl CatalogScraper {
                     let course_ids =
                         get_highest_course_number(expand_text.as_str()).unwrap() as usize;
 
-                    let progress_bar = multi_progress.add(ProgressBar::new(course_ids as u64));
+                    let progress_bar = multi_progress.add(ProgressBar::new(std::cmp::min(
+                        (course_ids - start) as u64,
+                        course_ids as u64,
+                    )));
                     progress_bar.set_style(
                     ProgressStyle::with_template(
-                        "{msg}\n{wide_bar} [{pos}/{len}]\nElapsed: [{elapsed_precise}] | ETA: [{eta_precise}]",
+                        "Elapsed: [{elapsed_precise}] | ETA: [{eta_precise}] | {msg}\n{wide_bar} [{pos}/{len}]",
                     )
                     .unwrap()
                 );
-                    progress_bar.set_message(format!(
-                        "Processing letter: {}..{}",
-                        letter, client.state_num
-                    ));
+                    progress_bar.set_message(format!("Processing letter: {}", letter));
+                    let mut current_id: usize = start;
 
-                    for id in start..course_ids {
-                        create_dir_all(format!("{}/course_{id}/", &letter_path)).unwrap();
+                    while current_id < course_ids {
+                        tokio::time::sleep(Duration::from_millis(500)).await;
+                        create_dir_all(format!("{}/course_{current_id}/", &letter_path)).unwrap();
 
-                        client
-                            .extract_class_details(
-                                id.to_string().as_str(),
-                                format!("{}/course_{id}/", &letter_path),
-                            )
-                            .await;
+                        let mut retry_count = 0;
+                        const MAX_RETRIES: u32 = 3;
+
+                        loop {
+                            let data_integrity_failure = client
+                                .extract_class_details(
+                                    current_id.to_string().as_str(),
+                                    format!("{}/course_{current_id}/", &letter_path),
+                                    &letter,
+                                )
+                                .await;
+
+                            if !data_integrity_failure {
+                                // Success - move to next course
+                                break;
+                            }
+
+                            println!("Data integrity failure for course {}. Attempt {}/{}. Recreating client and retrying...", 
+                current_id, retry_count, MAX_RETRIES);
+
+                            // Recreate client and reinitialize session
+                            client = ScraperClient::new(&url, Arc::clone(&unique));
+                            client.initialize_session().await;
+                            client.expand_departments(letter).await;
+                            retry_count += 1;
+                            if retry_count > MAX_RETRIES {
+                                println!(
+                                    "Failed to process course {} after {} retries.",
+                                    current_id, MAX_RETRIES
+                                );
+                                break;
+                            }
+
+                            // Add a small delay before retry
+                            tokio::time::sleep(Duration::from_secs(1)).await;
+                        }
 
                         progress_bar.inc(1);
+                        current_id += 1;
                     }
-                    progress_bar
-                        .finish_with_message(format!("Completed processing letter: {}", letter));
+                    /*
+                                        for id in start..course_ids {
+                                            tokio::time::sleep(Duration::from_millis(500)).await;
+                                            create_dir_all(format!("{}/course_{id}/", &letter_path)).unwrap();
+
+                                            let data_integrity_failure = client
+                                                .extract_class_details(
+                                                    id.to_string().as_str(),
+                                                    format!("{}/course_{id}/", &letter_path),
+                                                )
+                                                .await;
+
+                                            progress_bar.inc(1);
+                                        }
+                    */
+                    progress_bar.finish_and_clear();
                 });
 
                 handles.push(handle);

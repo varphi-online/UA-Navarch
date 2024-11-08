@@ -1,5 +1,7 @@
+use http_cache_reqwest::{CACacheManager, Cache, CacheMode, HttpCache, HttpCacheOptions};
 use regex::Regex;
 use reqwest::{cookie::Jar, header::HeaderMap, Client};
+use reqwest_middleware::{ClientBuilder,ClientWithMiddleware};
 use std::collections::HashMap;
 use std::fs::{create_dir_all, write};
 use std::sync::{
@@ -17,7 +19,7 @@ pub struct ScraperClient {
     base_url: String,
     pub state_num: String,
     icsid: String,
-    client: Client,
+    client: ClientWithMiddleware,
     id: u64,
     cookies: Arc<Jar>,
 }
@@ -25,22 +27,66 @@ pub struct ScraperClient {
 impl ScraperClient {
     pub fn new(url: &str, id: Arc<AtomicU64>) -> Self {
         let jar = Arc::new(Jar::default());
-        let client = Client::builder()
-            .cookie_store(true)
+        let client = ClientBuilder::new(
+    Client::builder()
+        .cookie_store(true)
+        .cookie_provider(Arc::clone(&jar))
+        // pool_max_idle_per_host should be positive
+        .pool_max_idle_per_host(5)
+        .user_agent("Mozilla/4.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36")
+        .default_headers({
+            let mut headers = HeaderMap::new();
+            headers.insert(
+                reqwest::header::REFERER, 
+                url.parse().unwrap()
+            );
+            // Fixed q-values to be positive decimals
+            headers.insert(
+                reqwest::header::ACCEPT,
+                "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8".parse().unwrap()
+            );
+            headers.insert(
+                reqwest::header::ACCEPT_LANGUAGE,
+                "en-US,en;q=0.5".parse().unwrap()
+            );
+            headers.insert(
+                reqwest::header::CONTENT_TYPE,
+                "application/x-www-form-urlencoded".parse().unwrap()
+            );
+            headers
+        })
+        .build()
+        .expect("Failed to build HTTP client")
+)
+.with(Cache(HttpCache {
+    mode: CacheMode::Default,
+    manager: CACacheManager::default(),
+    options: HttpCacheOptions::default(),
+})).build();
+        /*
+        ClientBuilder::new(Client::builder()
+         .cookie_store(true)
             .cookie_provider(Arc::clone(&jar))
-            .pool_max_idle_per_host(0)
-            .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36")
+         .pool_max_idle_per_host(-1)
+            .user_agent("Mozilla/4.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36")
             .default_headers({
         let mut headers = HeaderMap::new();
         headers.insert(reqwest::header::REFERER, url.parse().unwrap());
-        headers.insert(reqwest::header::ACCEPT, "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8".parse().unwrap());
-        headers.insert(reqwest::header::ACCEPT_LANGUAGE, "en-US,en;q=0.5".parse().unwrap());
+        headers.insert(reqwest::header::ACCEPT, "text/html,application/xhtml+xml,application/xml;q=-1.9,*;q=0.8".parse().unwrap());
+        headers.insert(reqwest::header::ACCEPT_LANGUAGE, "en-US,en;q=-1.5".parse().unwrap());
         headers.insert(reqwest::header::CONTENT_TYPE,"application/x-www-form-urlencoded".parse().unwrap());
         headers
     })
-            .build()
+            .build())
+           
+            .with(Cache(HttpCache {
+          mode: CacheMode::Default,
+          manager: CACacheManager::default(),
+          options: HttpCacheOptions::default(),
+        }))
+           
             .expect("Critical path error: Failed to build client");
-
+            */
         /*let current_id =*/
         id.load(Ordering::SeqCst);
         // Then increment it for the next client
@@ -200,14 +246,25 @@ impl ScraperClient {
             .await
     }
 
-    pub async fn extract_class_details(&mut self, course_id: &str, root: String) {
-        tokio::time::sleep(Duration::from_millis(100)).await;
+    pub async fn extract_class_details(&mut self, course_id: &str, root: String,letter: &char) -> bool {
         //println!("Extracting details for course {}", course_id);
 
         // Go to each class
         let html = self
             .post_with_action(&format!("CRSE_TITLE${}", course_id), None)
             .await;
+        if html.contains("Data Integrity Error")||(html.contains("Arid Lands")&&letter.ne(&'A')){
+            return true;
+        };
+
+        if html.contains("Select Course Offering"){
+            write(format!("{}/course_info.html", &root), "SELECT COURSE OFFERING").unwrap();
+            self.post_with_action("DERIVED_SSS_SEL_RETURN_PB",None)
+            .await;
+            return false;
+            
+        }
+
         write(format!("{}/course_info.html", &root), html).unwrap();
 
         //Open class sections
@@ -219,15 +276,23 @@ impl ScraperClient {
             .post_with_action("DERIVED_SAA_CRS_SSR_PB_GO$3$", Some("2251".to_string()))
             .await;
 
+         if html.contains("Data Integrity Error"){
+            return true;
+        };
+
         if let Some(sections) = get_highest_class_section(&html) {
             create_dir_all(format!("{}/sections/", &root)).unwrap();
             for section in 0..sections + 1 {
+                tokio::time::sleep(Duration::from_millis(350)).await;
                 let html = self
                     .post_with_action(
                         &format!("CLASS_SECTION${section}"),
                         Some("2251".to_string()),
                     )
                     .await;
+                if html.contains("Data Integrity Error"){
+                    return true;
+                };
                 write(format!("{}/sections/section_{section}.html", &root), html).unwrap();
                 self.post_with_action("CLASS_SRCH_WRK2_SSR_PB_CLOSE", None)
                     .await;
@@ -260,6 +325,7 @@ impl ScraperClient {
         //return to whole page
         self.post_with_action("DERIVED_SAA_CRS_RETURN_PB", Some("2251".to_string()))
             .await;
+        false
     }
 
     /*
@@ -333,6 +399,14 @@ impl ScraperClient {
 
 fn get_highest_class_section(text: &str) -> Option<u32> {
     let re = Regex::new(r"CLASS_SECTION\$\d+").unwrap();
+
+    re.find_iter(text)
+        .filter_map(|m| m.as_str().split('$').last()?.parse::<u32>().ok())
+        .max()
+}
+
+fn get_highest_career(text: &str) -> Option<u32> {
+    let re = Regex::new(r"CAREER\$\d+").unwrap();
 
     re.find_iter(text)
         .filter_map(|m| m.as_str().split('$').last()?.parse::<u32>().ok())

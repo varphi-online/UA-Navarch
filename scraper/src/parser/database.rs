@@ -1,34 +1,56 @@
+use super::parser::{Course, Section};
 use sqlite::ConnectionThreadSafe;
-use std::collections::HashMap;
 use std::sync::Arc;
 
 pub fn database_init(db_path: &str) -> Arc<ConnectionThreadSafe> {
-    let conn = Arc::new(sqlite::Connection::open_thread_safe(&db_path).unwrap());
+    let conn = Arc::new(sqlite::Connection::open_thread_safe(db_path).unwrap());
     conn.execute(
         "CREATE TABLE IF NOT EXISTS courses (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
             department TEXT,
             course_number TEXT,
             title TEXT,
             description TEXT,
             units TEXT,
             prerequisites TEXT
-            ); 
-         CREATE TABLE IF NOT EXISTS spring25 (
+            )",
+    )
+    .unwrap();
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS sections (
+            class_number TEXT,
             department TEXT,
             course_number TEXT,
-            section TEXT,
-            
+            section_number TEXT,
+            term TEXT,
+            status TEXT,
+            session TEXT,
+            class_components TEXT,
+            instruction_mode TEXT,
+            class_type TEXT,
+            academic_career TEXT,
+            start_date TEXT,
+            end_date TEXT,
+            grading TEXT,
+            location TEXT,
+            campus TEXT,
+            monday TEXT,
+            tuesday TEXT,
+            wednesday TEXT,
+            thursday TEXT,
+            friday TEXT,
+            start_time TEXT,
+            end_time TEXT,
+            instructor TEXT,
+            class_capacity TEXT,
+            enrollment_total TEXT,
+            available_seats TEXT
         )",
     )
     .unwrap();
     Arc::clone(&conn)
 }
 
-async fn save_to_database(
-    details: &HashMap<String, Option<String>>,
-    connection: &Arc<ConnectionThreadSafe>,
-) {
+pub fn db_course_write(details: &Course, connection: &Arc<ConnectionThreadSafe>) {
     let query = "INSERT OR REPLACE INTO courses
             (department, course_number, title, description, units, prerequisites)
             VALUES (:dep,:cn,:title,:desc,:units,:prereqs)";
@@ -36,12 +58,12 @@ async fn save_to_database(
     let db = connection;
     if let Ok(mut statement) = db.prepare(query) {
         match statement.bind_iter::<_, (_, sqlite::Value)>([
-            (":title", details.get(":title").unwrap().into()),
-            (":desc", details.get(":title").into()),
-            (":units", details.get(":title").into()),
-            (":prereqs", details.get(":title").into()),
-            (":dep", details.get(":title").into()),
-            (":cn", details.get(":title").into()),
+            (":title", details.clone().title.into()),
+            (":desc", details.clone().description.into()),
+            (":units", details.clone().units.into()),
+            (":prereqs", details.clone().prerequisites.into()),
+            (":dep", details.clone().department.into()),
+            (":cn", details.clone().course_number.into()),
         ]) {
             Ok(()) => {
                 let _ = statement.next().unwrap_or_else(|_| {
@@ -63,6 +85,66 @@ async fn save_to_database(
         println!(
             "Failed to prepare a database query for course: {:?} {:?}",
             details.title, details.course_number
+        )
+    }
+}
+
+pub fn db_section_write(details: &Section, connection: &Arc<ConnectionThreadSafe>) {
+    //println!("{:?}", details);
+    let query = "INSERT OR REPLACE INTO sections
+        (class_number, department, course_number, section_number, term, status, session, class_components, instruction_mode, class_type, academic_career, start_date, end_date, grading, location, campus, monday, tuesday, wednesday, thursday, friday, start_time, end_time, instructor, class_capacity, enrollment_total, available_seats)
+            VALUES (:class_number, :department, :course_number, :section_number, :term, :status, :session, :class_components, :instruction_mode, :class_type, :academic_career, :start_date, :end_date, :grading, :location, :campus, :monday, :tuesday, :wednesday, :thursday, :friday, :start_time, :end_time, :instructor, :class_capacity, :enrollment_total, :available_seats)";
+    let db = connection;
+    if let Ok(mut statement) = db.prepare(query) {
+        match statement.bind_iter::<_, (_, sqlite::Value)>([
+            (":class_number", details.class_number.clone().into()),
+            (":department", details.department.clone().into()),
+            (":course_number", details.course_number.clone().into()),
+            (":section_number", details.section_number.clone().into()),
+            (":term", details.term.clone().into()),
+            (":status", details.status.clone().into()),
+            (":session", details.session.clone().into()),
+            (":class_components", details.class_components.clone().into()),
+            (":instruction_mode", details.instruction_mode.clone().into()),
+            (":class_type", details.class_type.clone().into()),
+            (":academic_career", details.academic_career.clone().into()),
+            (":start_date", details.start_date.clone().into()),
+            (":end_date", details.end_date.clone().into()),
+            (":grading", details.grading.clone().into()),
+            (":location", details.location.clone().into()),
+            (":campus", details.campus.clone().into()),
+            (":monday", details.monday.clone().into()),
+            (":tuesday", details.tuesday.clone().into()),
+            (":wednesday", details.wednesday.clone().into()),
+            (":thursday", details.thursday.clone().into()),
+            (":friday", details.friday.clone().into()),
+            (":start_time", details.start_time.clone().into()),
+            (":end_time", details.end_time.clone().into()),
+            (":instructor", details.instructor.clone().into()),
+            (":class_capacity", details.class_capacity.clone().into()),
+            (":enrollment_total", details.enrollment_total.clone().into()),
+            (":available_seats", details.available_seats.clone().into()),
+        ]) {
+            Ok(()) => {
+                let _ = statement.next().unwrap_or_else(|_| {
+                    println!(
+                        "Failed to advance Database state to prepared query for section: {:?} {:?} {:?}",
+                        details.department, details.course_number, details.section_number
+                    );
+                    sqlite::State::Done
+                });
+            }
+            Err(_) => {
+                println!(
+                    "Failed to bind some section data to a prepared query for section: {:?} {:?} {:?}",
+                    details.department, details.course_number, details.section_number
+                )
+            }
+        }
+    } else {
+        println!(
+            "Failed to prepare a database query for section: {:?} {:?} {:?}",
+            details.department, details.course_number, details.section_number
         )
     }
 }
