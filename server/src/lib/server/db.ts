@@ -12,6 +12,7 @@ class Course {
         public prerequisites: string
     ) {}
 
+/* eslint-disable  @typescript-eslint/no-explicit-any */
     static fromRow(row: any): Course {
         return new Course(
             row.department,
@@ -29,8 +30,23 @@ export function search(dept: string|null, num: string|null, desc: string|null, l
     const params: string[] = [];
 
     if (dept) {
-        query += ` AND LOWER(department) LIKE ?`;
-        params.push(`%${dept.toLowerCase()}%`);
+        const lowerDept = dept.toLowerCase();
+        query += ` AND (
+            CASE 
+                WHEN LOWER(department) = ? THEN 1
+                WHEN LOWER(department) LIKE ? THEN 2
+            END = 1 OR 
+            CASE 
+                WHEN LOWER(department) = ? THEN 1
+                WHEN LOWER(department) LIKE ? THEN 2
+            END = 2
+        )`;
+        params.push(
+            lowerDept,             // For exact match
+            `%${lowerDept}%`,      // For partial match
+            lowerDept,             // Repeated for the second CASE
+            `%${lowerDept}%`       // Repeated for the second CASE
+        );
     }
 
     if (num) {
@@ -39,12 +55,22 @@ export function search(dept: string|null, num: string|null, desc: string|null, l
     }
 
     if (desc) {
-        query += ` AND LOWER(description) LIKE ?`;
-        params.push(`%${desc.toLowerCase()}%`);
+        const lowerDesc = desc.toLowerCase();
+        query += ` AND (LOWER(description) LIKE ? OR LOWER(title) LIKE ?)`;
+        params.push(`%${lowerDesc}%`, `%${lowerDesc}%`);
     }
 
-    query += `limit ${limit}`;
+    if (dept) {
+        query += ` ORDER BY 
+            CASE 
+                WHEN LOWER(department) = ? THEN 0
+                WHEN LOWER(department) LIKE ? THEN 1
+                ELSE 2
+            END`;
+        params.push(dept.toLowerCase(), `%${dept.toLowerCase()}%`);
+    }
 
+    query += ` LIMIT ${limit}`;
     const rows = db.query(query).all(...params);
     return rows.map(row => Course.fromRow(row));
 }
