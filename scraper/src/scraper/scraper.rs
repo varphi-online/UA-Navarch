@@ -107,10 +107,10 @@ impl CatalogScraper {
                     )
                     .unwrap()
                 );
-                    progress_bar.set_message(format!("Processing letter: {}", letter));
                     let mut current_id: usize = start;
 
                     while current_id < course_ids {
+                        progress_bar.set_message(format!("Processing letter: {}", letter));
                         tokio::time::sleep(Duration::from_millis(500)).await;
                         create_dir_all(format!("{}/course_{current_id}/", &letter_path)).unwrap();
 
@@ -130,9 +130,7 @@ impl CatalogScraper {
                                 // Success - move to next course
                                 break;
                             }
-
-                            println!("Data integrity failure for course {}. Attempt {}/{}. Recreating client and retrying...", 
-                current_id, retry_count, MAX_RETRIES);
+                            progress_bar.set_message(format!("Processing letter: {} | Data integrity failure for course {}. Attempt {}/{}. Recreating client and retrying...", letter,current_id, retry_count, MAX_RETRIES));
 
                             // Recreate client and reinitialize session
                             client = ScraperClient::new(&url, Arc::clone(&unique));
@@ -140,10 +138,13 @@ impl CatalogScraper {
                             client.expand_departments(letter).await;
                             retry_count += 1;
                             if retry_count > MAX_RETRIES {
+                                /*
                                 println!(
                                     "Failed to process course {} after {} retries.",
                                     current_id, MAX_RETRIES
                                 );
+                                */
+                                progress_bar.set_message("skipping");
                                 break;
                             }
 

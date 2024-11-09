@@ -1,2 +1,5 @@
 cached_catalog/**/*
 test/**/*
+http-cacache/**/*
+catalog.db
+
