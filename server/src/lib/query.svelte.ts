@@ -34,15 +34,13 @@ export class Course {
 
 export class SectionQuery {
     constructor(
-        public department: string|null,
-        public course_number: string|null,
-        //public title: string|null,
-        //public description: string|null,
-        public units: string|null,
-        public prerequisites: string|null,
-        public daysOfWeek: (string|null)[],
-        public startTime: string|null,
-        public endTime: string|null,
+        public department: string|null = null,
+        public course_number: string|null = null,
+        public units: string|null = null,
+        public prerequisites: string|null = null,
+        public daysOfWeek: (string|null)[] = null,
+        public startTime: string|null = null,
+        public endTime: string|null = null,
     ) {}
 }
 
