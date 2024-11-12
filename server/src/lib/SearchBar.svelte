@@ -1,9 +1,11 @@
 <script lang="ts">
+	import {grow} from '$lib/transitions'
 	import * as ToggleGroup from '$lib/components/ui/toggle-group/index.js';
 	import { Label } from '$lib/components/ui/label';
 	import * as Select from '$lib/components/ui/select';
 	import { CourseQuery, Course, Section, SectionQuery } from '$lib/query.svelte';
 	import Input from './components/ui/input/input.svelte';
+	
 	let {
 		courses = $bindable(),
 		sections = $bindable()
@@ -84,9 +86,9 @@
 	}
 </script>
 
-<div class="flex flex-row">
+<div class="flex flex-row items-center w-fit rounded-2xl border-2 border-solid border-gray-500 h-10 p-0 box-content">
 	<Select.Root bind:selected={searchType}>
-		<Select.Trigger class="m-0 w-[100px] rounded-2xl border-2 border-solid border-gray-500">
+		<Select.Trigger class="m-0 w-[100px] h-full border-r-[1px] border-y-0 border-l-0 rounded-none rounded-bl-2xl rounded-tl-2xl ">
 			<Select.Value placeholder="Courses" />
 		</Select.Trigger>
 		<Select.Content>
@@ -94,24 +96,28 @@
 			<Select.Item value="section">Sections</Select.Item>
 		</Select.Content>
 	</Select.Root>
-	{#if activeFilters.includes('description')}<Input
+	{#if activeFilters.includes('description')}<div class="h-min" transition:grow><Input
 			type="text"
+			class="h-full border-r-[1px] m-0 border-y-0 border-l-0 rounded-none border-gray-300 z-10"
 			bind:value={desc}
 			placeholder="Keyword(s)"
-		/>{/if}
-	{#if activeFilters.includes('departments')}<Input
+		/></div>{/if}
+	{#if activeFilters.includes('departments')}
+	<div class="h-fit" transition:grow><Input
 			type="text"
+			class="h-full border-r-[1px] m-0 border-y-0 border-l-0 rounded-none border-gray-300 z-10"
 			bind:value={dept}
 			placeholder="Department"
-		/>{/if}
-	{#if activeFilters.includes('course_number')}<Input
+		/></div>{/if}
+	{#if activeFilters.includes('course_number')}<div class="h-fit" transition:grow><Input
 			type="text"
+			class="h-full border-r-[1px] m-0 border-y-0 border-l-0 rounded-none border-gray-300 z-10"
 			bind:value={num}
 			placeholder="Course Number"
-		/>{/if}
-	{#if activeFilters.includes('attributes')}
+		/></div>{/if}
+	{#if activeFilters.includes('attributes')}<div class="h-fit" transition:grow>
 		<Select.Root multiple bind:selected={attrs}>
-			<Select.Trigger>
+			<Select.Trigger class="h-full border-r-[1px] m-0 border-y-0 border-l-0 rounded-none border-gray-300 z-10">
 				<Select.Value placeholder="Course Attribute(s)" />
 			</Select.Trigger>
 			<Select.Content>
@@ -124,17 +130,21 @@
 				<Select.Item value="Gen Ed: Social Scientist">Gen Ed: Social Scientist</Select.Item>
 			</Select.Content>
 		</Select.Root>
+	</div>
 	{/if}
 	{#if activeFilters.includes('days') && searchType.value == 'section'}
-		<ToggleGroup.Root type="multiple" bind:value={daysOfWeek}>
+	<div class="h-fit" transition:grow>
+		<ToggleGroup.Root type="multiple" bind:value={daysOfWeek} class="h-full border-r-[1px] m-0 border-y-0 border-l-0 rounded-none border-gray-300 z-10">
 			<ToggleGroup.Item value="mo" aria-label="Toggle Monday">Mo</ToggleGroup.Item>
 			<ToggleGroup.Item value="tu" aria-label="Toggle Tuesday">Tu</ToggleGroup.Item>
 			<ToggleGroup.Item value="we" aria-label="Toggle Wednesday">We</ToggleGroup.Item>
 			<ToggleGroup.Item value="th" aria-label="Toggle Thursday">Th</ToggleGroup.Item>
 			<ToggleGroup.Item value="fr" aria-label="Toggle Friday">Fr</ToggleGroup.Item>
 		</ToggleGroup.Root>
+	</div>
 	{/if}
 	{#if activeFilters.includes('times') && searchType.value == 'section'}
+	<div class="h-fit" transition:grow>
 		<div>
 			<Label for="st">Start time</Label>
 			<Input bind:value={startTime} type="time" id="st" placeholder="08:00" autocomplete="off" />
@@ -143,10 +153,11 @@
 			<Label for="et">End time</Label>
 			<Input bind:value={endTime} type="time" id="et" placeholder="18:00" autocomplete="off" />
 		</div>
+	</div>
 	{/if}
 	<Select.Root multiple bind:selected={filters}>
-		<Select.Trigger class="">+</Select.Trigger>
-		<Select.Content>
+		<Select.Trigger class="w-fit h-full border-none z-10 rounded-tr-2xl rounded-br-2xl"/>
+		<Select.Content class="min-w-[200px]">
 			<Select.Item value="description">Keywords</Select.Item>
 			<Select.Item value="departments">Departments</Select.Item>
 			<Select.Item value="course_number">Course Number</Select.Item>

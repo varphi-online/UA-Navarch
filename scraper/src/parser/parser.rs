@@ -1,6 +1,7 @@
 use super::database::*;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use regex::Regex;
+use std::hash::{DefaultHasher, Hash, Hasher};
 use std::sync::Arc;
 use std::thread::{spawn, JoinHandle};
 
@@ -84,21 +85,51 @@ fn parse_course(path: &std::path::PathBuf) -> Option<Course> {
             //println!("title parse fail");
             "Placeholder Placeholder - Fail to parse".to_string()
         });
+        let attrs =
+            find_by_id(&html, r"DERIVED_CRSECAT_SSR_CRSE_ATTR_LONG\$0").unwrap_or("".to_string());
         let split: Vec<&str> = title.split(" ").collect();
+
+        let (dept, cn) = (
+            split
+                .first()
+                .unwrap_or(&"FAILSTATE")
+                .replace("&nbsp;", "")
+                .trim()
+                .to_string(),
+            split.get(1).unwrap_or(&"FAILSTATE").trim().to_string(),
+        );
+
         Some(Course {
-            department: Some(
-                split
-                    .first()
-                    .unwrap_or(&"FAILSTATE")
-                    .replace("&nbsp;", "")
-                    .trim()
-                    .to_string(),
-            ),
-            course_number: Some(split.get(1).unwrap_or(&"FAILSTATE").trim().to_string()),
+            hash: Some(calculate_hash(&format!("{dept}{cn}")) as i64),
+            department: Some(dept),
+            course_number: Some(cn),
             title: Some(split[3..].join(" ").trim().to_string()),
             description: find_by_id(&html, r"SSR_CRSE_OFF_VW_DESCRLONG\$0"),
             units: find_by_id(&html, r"DERIVED_CRSECAT_UNITS_RANGE\$0"),
             prerequisites: find_by_id(&html, r"UA_CRSE_CHR_DER_DESCR254A\$0"),
+            attr_ge_bc: Some(
+                attrs
+                    .to_lowercase()
+                    .contains("building connections")
+                    .to_string(),
+            ),
+            attr_ge_art: Some(attrs.to_lowercase().contains("artist").to_string()),
+            attr_ge_hum: Some(attrs.to_lowercase().contains("humanist").to_string()),
+            attr_ge_ns: Some(
+                attrs
+                    .to_lowercase()
+                    .contains("natural scientist")
+                    .to_string(),
+            ),
+            attr_ge_ss: Some(
+                attrs
+                    .to_lowercase()
+                    .contains("social scientist")
+                    .to_string(),
+            ),
+            attr_ge_ec: Some(attrs.to_lowercase().contains("entry course").to_string()),
+            attr_ge_xc: Some(attrs.to_lowercase().contains("exit course").to_string()),
+            attrs: Some(attrs),
         })
     } else {
         None
@@ -128,17 +159,21 @@ fn parse_section(path: &std::path::PathBuf) -> Option<Section> {
         let d_split: Vec<&str> = date.split("-").collect();
         let m_split: Vec<&str> = meeting.split_whitespace().collect();
 
+        let (dept, cn) = (
+            t_split
+                .first()
+                .unwrap_or(&"FAILSTATE")
+                .replace("&nbsp;", "")
+                .trim()
+                .to_string(),
+            t_split.get(1).unwrap_or(&"FAILSTATE").trim().to_string(),
+        );
+
         //println!("{:?}{:?}{:?}{:?}", t_split, e_split, d_split, m_split);
         Some(Section {
-            department: Some(
-                t_split
-                    .first()
-                    .unwrap_or(&"FAILSTATE")
-                    .replace("&nbsp;", "")
-                    .trim()
-                    .to_string(),
-            ),
-            course_number: Some(t_split.get(1).unwrap_or(&"FAILSTATE").trim().to_string()),
+            hash: Some(calculate_hash(&format!("{dept}{cn}")) as i64),
+            department: Some(dept),
+            course_number: Some(cn),
             class_number: find_by_id(&html, "SSR_CLS_DTL_WRK_CLASS_NBR"),
             section_number: Some(
                 t_split
@@ -223,19 +258,35 @@ fn find_by_id(html: &str, id: &str) -> Option<String> {
         .map(|m| m.as_str().to_string())
 }
 
+fn calculate_hash<T: Hash>(t: &T) -> u64 {
+    let mut s = DefaultHasher::new();
+    t.hash(&mut s);
+    s.finish()
+}
+
 #[derive(Clone, Default, Debug)]
 pub struct Course {
     //pub course_id: Option<String>,
+    pub hash: Option<i64>,
     pub department: Option<String>,
     pub course_number: Option<String>,
     pub title: Option<String>,
     pub description: Option<String>,
     pub units: Option<String>,
     pub prerequisites: Option<String>,
+    pub attr_ge_bc: Option<String>,
+    pub attr_ge_art: Option<String>,
+    pub attr_ge_hum: Option<String>,
+    pub attr_ge_ns: Option<String>,
+    pub attr_ge_ss: Option<String>,
+    pub attr_ge_ec: Option<String>,
+    pub attr_ge_xc: Option<String>,
+    pub attrs: Option<String>,
 }
 
 #[derive(Clone, Default, Debug)]
 pub struct Section {
+    pub hash: Option<i64>,
     pub class_number: Option<String>,
     pub department: Option<String>,
     pub course_number: Option<String>,

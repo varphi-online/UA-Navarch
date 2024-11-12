@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { scale } from 'svelte/transition';
 	import type { HTMLInputAttributes } from "svelte/elements";
 	import type { InputEvents } from "./index.js";
 	import { cn } from "$lib/utils.js";

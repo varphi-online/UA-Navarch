@@ -33,7 +33,7 @@
 	{...$$restProps}
 	on:keydown
 >
-	<div class="w-full p-1">
+	<div class="w-fit p-1">
 		<slot />
 	</div>
 </SelectPrimitive.Content>

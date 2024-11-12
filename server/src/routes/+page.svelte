@@ -6,14 +6,18 @@
 </script>
 
 <h1 class="text-3xl font-bold">NavArch</h1>
+<div class="w-full flex flex-row justify-center">
 <SearchBar bind:courses bind:sections />
+</div>
 {#if courses.length > 0}
 	<div class="">
 		{#each courses as result}
 			<div>
 				<h3 class="border-b-2 border-dashed border-gray-500 text-xl font-semibold">
-					{result.department}
-					{result.course_number} - {@html result.title}
+					<a href={`/course/${result.department}/${result.course_number}`}>
+						{result.department}
+						{result.course_number} - {@html result.title}
+					</a>
 				</h3>
 				<p>{@html result.description}</p>
 			</div>
@@ -48,3 +52,4 @@
 	<div class="no-results">No results found</div>
 	{/if}
 {/if}
+
