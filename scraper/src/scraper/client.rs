@@ -403,12 +403,9 @@ fn get_highest_class_section(text: &str) -> Option<u32> {
     re.find_iter(text)
         .filter_map(|m| m.as_str().split('$').last()?.parse::<u32>().ok())
         .max()
-}
-
-fn get_highest_career(text: &str) -> Option<u32> {
-    let re = Regex::new(r"CAREER\$\d+").unwrap();
-
-    re.find_iter(text)
-        .filter_map(|m| m.as_str().split('$').last()?.parse::<u32>().ok())
-        .max()
+/*
+    Some((re.find_iter(text).count()/4) as u32)
+        /*.filter_map(|m| m.as_str().split('$').last()?.parse::<u32>().ok())
+        .max()*/
+*/
 }

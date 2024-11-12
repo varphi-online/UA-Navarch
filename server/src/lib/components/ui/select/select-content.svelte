@@ -27,13 +27,13 @@
 	{outTransitionConfig}
 	{sideOffset}
 	class={cn(
-		"bg-popover text-popover-foreground relative z-50 min-w-[8rem] overflow-hidden rounded-md border shadow-md outline-none",
+		"bg-popover text-popover-foreground absolute z-50 min-w-[8rem] !w-fit overflow-visible rounded-md border shadow-md outline-none",
 		className
 	)}
 	{...$$restProps}
 	on:keydown
 >
-	<div class="w-fit p-1">
+	<div class=" p-1 w-full">
 		<slot />
 	</div>
 </SelectPrimitive.Content>

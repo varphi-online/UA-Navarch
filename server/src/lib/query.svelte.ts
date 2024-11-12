@@ -4,6 +4,7 @@ export class CourseQuery {
         public course_number: string|null = null,
         public title: string|null = null,
         public description: string|null = null,
+        public attributes: (string|null)[] = null,
         public units: string|null = null,
         public prerequisites: string|null = null
     ) {}
