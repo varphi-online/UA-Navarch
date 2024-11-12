@@ -14,4 +14,3 @@ Todo:
 - [ ] add user store for selected classes/sections
 - [ ] Architect: weekly view on selected sections
 - [ ] schedule generator
-- [ ] fix section search
