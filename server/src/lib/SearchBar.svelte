@@ -2,12 +2,9 @@
 	import Filter  from 'lucide-svelte/icons/filter';
 	import { grow } from '$lib/transitions';
 	import * as ToggleGroup from '$lib/components/ui/toggle-group/index.js';
-	import { Label } from '$lib/components/ui/label';
 	import * as Select from '$lib/components/ui/select';
 	import { CourseQuery, Course, Section, SectionQuery } from '$lib/query.svelte';
 	import Input from './components/ui/input/input.svelte';
-	import SelectTrigger from './components/ui/select/select-trigger.svelte';
-	import { Trigger } from './components/ui/dialog';
 
 	let {
 		courses = $bindable(),
@@ -24,6 +21,7 @@
 	let dept: string | null = $state(null);
 	let num: string | null = $state(null);
 	let attrs = $state([]);
+	let instructor: string | null = $state(null);
 	let startTime = $state('08:00');
 	let endTime = $state('18:00');
 	let daysOfWeek: string[] = $state([]);
@@ -44,6 +42,7 @@
 			null,
 			null,
 			null,
+			activeFilters.includes('instructor') ? instructor: null,
 			activeFilters.includes('days') ? daysOfWeek : [],
 			activeFilters.includes('times') ? startTime : null,
 			activeFilters.includes('times') ? endTime : null
@@ -57,7 +56,8 @@
 			(dept && dept.length > 0) ||
 			(num && num.length > 0) ||
 			attrs.length > 0 ||
-			daysOfWeek.length > 0
+			daysOfWeek.length > 0||
+			(instructor && instructor.length > 0) 
 		) {
 			if (searchType.value == 'course') {
 				courseSearch(course_query).then((result) => {
@@ -148,6 +148,14 @@
 				placeholder="Course Number"
 			/>
 		</div>{/if}
+	{#if activeFilters.includes('instructor')&& searchType.value == 'section'}<div class="h-fit" transition:grow>
+		<Input
+			type="text"
+			class="z-10 m-0 h-full rounded-none border-y-0 border-l-0 border-r-[1px] border-gray-300"
+			bind:value={instructor}
+			placeholder="Instructor"
+		/>
+	</div>{/if}
 	{#if activeFilters.includes('attributes')}<div class="h-fit" transition:grow>
 			<Select.Root multiple bind:selected={attrs}>
 				<Select.Trigger
@@ -201,12 +209,13 @@
 		</Select.Trigger>
 		<Select.Content>
 			<Select.Item value="description" >Keywords</Select.Item>
-			<Select.Item value="departments">Departments</Select.Item>
+			<Select.Item value="departments">Department</Select.Item>
 			<Select.Item value="course_number">Course Number</Select.Item>
 			<Select.Item value="attributes">Course Attributes</Select.Item>
 			{#if searchType.value == 'section'}
 				<Select.Item value="days">Week Days</Select.Item>
 				<Select.Item value="times">Times</Select.Item>
+				<Select.Item value="instructor">Instructor</Select.Item>
 			{/if}
 		</Select.Content>
 	</Select.Root>

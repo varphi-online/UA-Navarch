@@ -3,32 +3,23 @@
 	let courses: Course[] = $state([]);
 	let sections: Section[] = $state([]);
 	import SearchBar from '$lib/SearchBar.svelte';
+	import CourseCard from '$lib/CourseCard.svelte';
 </script>
 
-<div class="flex w-full flex-col items-center gap-3">
+<div class="flex w-full flex-col items-center gap-8 mt-16 mb-6">
 	<h1 class="text-3xl font-bold">UA Navarch</h1>
 	<SearchBar bind:courses bind:sections />
 </div>
+<div class="grid sm:grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-8 p-10 justify-center">
 {#if courses.length > 0}
-	<div class="">
 		{#each courses as result}
-			<div>
-				<h3 class="border-b-2 border-dashed border-gray-500 text-xl font-semibold">
-					<a href={`/course/${result.department}/${result.course_number}`}>
-						{result.department}
-						{result.course_number} - {@html result.title}
-					</a>
-				</h3>
-				<p>{@html result.description}</p>
-			</div>
+			<CourseCard course={result}/>
 		{/each}
-	</div>
 	<!--<Button onclick={() => addLimit()}>Try Load More</Button>-->
 {:else}
 	<div class="no-results">No results found</div>
 {/if}
 {#if sections.length > 0}
-	<div class="">
 		{#each sections as result}
 			<div class="result-item">
 				<h3 class="text-xl font-semibold">
@@ -45,8 +36,8 @@
 				</p>
 			</div>
 		{/each}
-	</div>
 	<!--<Button onclick={() => addLimit()}>Try Load More</Button>-->
 {:else if courses.length != 0}
 	<div class="no-results">No results found</div>
 {/if}
+</div>

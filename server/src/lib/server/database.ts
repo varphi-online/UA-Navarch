@@ -160,6 +160,12 @@ export function search_section(
         params.push(`%${lowerDesc}%`, `%${lowerDesc}%`);
     }
 
+    if (section_query.instructor) {
+        const lowerInst = section_query.instructor.toLowerCase();
+        query += ` AND (LOWER(sections.instructor) LIKE ?)`;
+        params.push(`%${lowerInst}%`);
+    }
+
     // Add course attributes filters
     if (course_query.attributes.includes("bc")) query += ` AND courses.building_connections = 'true'`;
     if (course_query.attributes.includes("hum")) query += ` AND courses.humanist = 'true'`;

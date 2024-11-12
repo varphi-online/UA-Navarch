@@ -17,7 +17,14 @@ export class Course {
         public title: string,
         public description: string,
         public units: string,
-        public prerequisites: string
+        public prerequisites: string,
+        public building_connections: string,
+        public artist: string,
+        public humanist: string,
+        public natural_scientist: string,
+        public social_scientist: string,
+        public entry_course: string,
+        public exit_course: string,
     ) {}
 
 /* eslint-disable  @typescript-eslint/no-explicit-any */
@@ -28,7 +35,14 @@ export class Course {
             row.title,
             row.description,
             row.units,
-            row.prerequisites
+            row.prerequisites,
+            row.building_connections,
+            row.artist,
+            row.humanist,
+            row.natural_scientist,
+            row.social_scientist,
+            row.entry_course,
+            row.exit_course
         );
     }
 }
@@ -39,6 +53,7 @@ export class SectionQuery {
         public course_number: string|null = null,
         public units: string|null = null,
         public prerequisites: string|null = null,
+        public instructor: string|null = null,
         public daysOfWeek: (string|null)[] = null,
         public startTime: string|null = null,
         public endTime: string|null = null,
