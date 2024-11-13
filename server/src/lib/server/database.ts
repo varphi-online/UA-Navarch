@@ -57,9 +57,10 @@ export function search_course(course_query: CourseQuery, limit: number): Course[
         params.push(course_query.description.toLowerCase(), `%${course_query.description.toLowerCase()}%`);
     }
 
-    query += ` LIMIT ${limit}`;
+    //query += ` LIMIT ${limit}`;
     const rows = db.query(query).all(...params);
-    return rows.map(row => Course.fromRow(row));
+    //console.log(limit)
+    return rows.map(row => Course.fromRow(row)).slice(0,limit);
 }
 /*
 export function search_section(section_query: SectionQuery, limit: number): Section[] {
@@ -182,7 +183,6 @@ export function search_section(
     if (section_query.daysOfWeek.includes("th")) query += ` AND sections.thursday = 'true'`;
     if (section_query.daysOfWeek.includes("fr")) query += ` AND sections.friday = 'true'`;
 
-    /* TODO
     if (section_query.startTime) {
         query += ` AND sections.start_time >= ?`;
         params.push(section_query.startTime);
@@ -192,7 +192,7 @@ export function search_section(
         query += ` AND sections.end_time <= ?`;
         params.push(section_query.endTime);
     }
-        */
+        
 
     // Add ordering similar to course search when description is provided
     if (course_query.description) {
@@ -208,7 +208,8 @@ export function search_section(
         );
     }
 
-    query += ` LIMIT ${limit}`;
+    //query += ` LIMIT ${limit}`;
     const rows = db.query(query).all(...params);
-    return rows.map(row => Section.fromRow(row));
+    //console.log(limit)
+    return rows.map(row => Section.fromRow(row)).slice(0,limit);
 }

@@ -2,11 +2,12 @@
 	import { Course } from '$lib/query.svelte';
 	let { course }: { course: Course } = $props();
 	import Lock from 'lucide-svelte/icons/lock';
+    import Link from 'lucide-svelte/icons/link';
 	import * as Tooltip from '$lib/components/ui/tooltip/index.js';
-	console.log(course.prerequisites);
 </script>
 
-<div class=" h-80 overflow-hidden rounded-3xl border-2 border-solid border-gray-300 p-4">
+<div class=" h-80 rounded-3xl border-2 border-solid border-gray-300 p-4 flex flex-col flex-nowrap justify-center">
+    <div>
 	<a href={`/course/${course.department}/${course.course_number}`}>
 		<h3 class="inline w-fit rounded-2xl bg-gray-200 px-2 text-lg font-semibold">
 			{course.department}
@@ -80,7 +81,7 @@
 			</Tooltip.Root>{/if}
 		{#if course.prerequisites}
 			<Tooltip.Root>
-				<Tooltip.Trigger class="rounded-2x float-right inline w-fit">
+				<Tooltip.Trigger class="rounded-2x float-right inline w-fit ml-[0.25rem]">
 					<Lock />
 				</Tooltip.Trigger>
 				<Tooltip.Content>
@@ -88,9 +89,20 @@
 				</Tooltip.Content>
 			</Tooltip.Root>
 		{/if}
+        {#if course.equivalences}
+			<Tooltip.Root>
+				<Tooltip.Trigger class="rounded-2x float-right inline w-fit">
+					<Link />
+				</Tooltip.Trigger>
+				<Tooltip.Content>
+					<p>Equivalent Courses Available</p>
+				</Tooltip.Content>
+			</Tooltip.Root>
+		{/if}
+     </a>
+        </div>
         <div class="flex my-2">
 		    <h4 class="text-lg font-semibold">{@html course.title}</h4>
         </div>
-	</a>
-	<p>{@html course.description}</p>
+	<p class=" line-clamp-4 text-ellipsis overflow-hidden flex-grow break-words whitespace-normal">{@html course.description}</p>
 </div>

@@ -107,6 +107,10 @@ fn parse_course(path: &std::path::PathBuf) -> Option<Course> {
             description: find_by_id(&html, r"SSR_CRSE_OFF_VW_DESCRLONG\$0"),
             units: find_by_id(&html, r"DERIVED_CRSECAT_UNITS_RANGE\$0"),
             prerequisites: find_by_id(&html, r"UA_CRSE_CHR_DER_DESCR254A\$0"),
+            requirements: find_by_id(&html, r"DERIVED_CRSECAT_DESCR254A\$0"),
+            equivalences: find_by_id(&html, r"UA_CRSE_CHR_DER_DESCR254_1\$0"),
+            //Requirements - DERIVED_CRSECAT_DESCR254A$0
+            //Equivalances - UA_CRSE_CHR_DER_DESCR254_1$0
             attr_ge_bc: Some(
                 attrs
                     .to_lowercase()
@@ -139,7 +143,7 @@ fn parse_course(path: &std::path::PathBuf) -> Option<Course> {
 fn parse_section(path: &std::path::PathBuf) -> Option<Section> {
     if let Ok(html) = std::fs::read_to_string(path) {
         let title = find_by_id(&html, "DERIVED_CLSRCH_DESCR200").unwrap_or_else(|| {
-            println!("title parse fail");
+            //println!("title parse fail");
             "Placeholder Placeholder - Fail to parse".to_string()
         });
         let extra = find_by_id(&html, "DERIVED_CLSRCH_SSS_PAGE_KEYDESCR").unwrap_or_else(|| {
@@ -238,8 +242,8 @@ fn parse_section(path: &std::path::PathBuf) -> Option<Section> {
                     .contains("Fr")
                     .to_string(),
             ),
-            start_time: Some(m_split.get(1).unwrap_or(&"TBD").trim().to_string()),
-            end_time: Some(m_split.get(3).unwrap_or(&"TBD").trim().to_string()),
+            start_time: Some(convert_time_format(m_split.get(1).unwrap_or(&"TBD").trim())),
+            end_time: Some(convert_time_format(m_split.get(3).unwrap_or(&"TBD").trim())),
             instructor: find_by_id(&html, r"MTG_INSTR\$0"),
             class_capacity: find_by_id(&html, "SSR_CLS_DTL_WRK_ENRL_CAP"),
             enrollment_total: find_by_id(&html, "SSR_CLS_DTL_WRK_ENRL_TOT"),
@@ -264,6 +268,26 @@ fn calculate_hash<T: Hash>(t: &T) -> u64 {
     s.finish()
 }
 
+pub fn convert_time_format(time_str: &str) -> String {
+    if time_str == "TBD" {
+        return time_str.to_string();
+    };
+    let time = &time_str[..time_str.len() - 2];
+    let meridiem = &time_str[time_str.len() - 2..];
+
+    let mut parts = time.split(':');
+    let mut hours: u32 = parts.next().unwrap().parse().unwrap();
+    let minutes: u32 = parts.next().unwrap().parse().unwrap();
+
+    if meridiem == "PM" && hours != 12 {
+        hours += 12;
+    } else if meridiem == "AM" && hours == 12 {
+        hours = 0;
+    }
+
+    format!("{:02}:{:02}", hours, minutes)
+}
+
 #[derive(Clone, Default, Debug)]
 pub struct Course {
     //pub course_id: Option<String>,
@@ -274,6 +298,8 @@ pub struct Course {
     pub description: Option<String>,
     pub units: Option<String>,
     pub prerequisites: Option<String>,
+    pub requirements: Option<String>,
+    pub equivalences: Option<String>,
     pub attr_ge_bc: Option<String>,
     pub attr_ge_art: Option<String>,
     pub attr_ge_hum: Option<String>,

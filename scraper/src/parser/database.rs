@@ -13,6 +13,8 @@ pub fn database_init(db_path: &str) -> Arc<ConnectionThreadSafe> {
             description TEXT,
             units TEXT,
             prerequisites TEXT,
+            requirements TEXT,
+            equivalences TEXT,
             building_connections TEXT,
             artist TEXT,
             humanist TEXT,
@@ -63,9 +65,9 @@ pub fn database_init(db_path: &str) -> Arc<ConnectionThreadSafe> {
 pub fn db_course_write(details: &Course, connection: &Arc<ConnectionThreadSafe>) {
     let query = "INSERT OR REPLACE INTO courses
             (hash, department, course_number, title, description, units,
-            prerequisites, building_connections, artist, humanist, natural_scientist,
+            prerequisites, requirements, equivalences, building_connections, artist, humanist, natural_scientist,
             social_scientist, entry_course, exit_course, attributes)
-            VALUES (:h,:dep,:cn,:title,:desc,:units,:prereqs,:bc,:art,:hum,:ns,:ss,:ec,:xc,:attr)";
+            VALUES (:h,:dep,:cn,:title,:desc,:units,:prereqs,:req,:eq,:bc,:art,:hum,:ns,:ss,:ec,:xc,:attr)";
 
     let db = connection;
     if let Ok(mut statement) = db.prepare(query) {
@@ -75,6 +77,8 @@ pub fn db_course_write(details: &Course, connection: &Arc<ConnectionThreadSafe>)
             (":desc", details.clone().description.into()),
             (":units", details.clone().units.into()),
             (":prereqs", details.clone().prerequisites.into()),
+            (":req", details.clone().requirements.into()),
+            (":eq", details.clone().equivalences.into()),
             (":dep", details.clone().department.into()),
             (":cn", details.clone().course_number.into()),
             (":bc", details.clone().attr_ge_bc.into()),
