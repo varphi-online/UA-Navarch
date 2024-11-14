@@ -22,7 +22,7 @@
 	<div class="grid justify-center gap-6 p-10 sm:grid-cols-1 md:grid-cols-3 lg:grid-cols-5">
 		{#if courses.length > 0}
 			{#each courses as result}
-				<CourseCard course={result} />
+				<CourseCard course={result} small={false} />
 			{/each}
 			<!--<Button onclick={() => addLimit()}>Try Load More</Button>-->
 		{/if}
@@ -31,7 +31,7 @@
 				<div class="result-item">
 					<h3 class="text-xl font-semibold">
 						{result.department}
-						{result.course_number} - {result.section_number}
+						{result.course_number} - {result.section_number} | {result.class_number}
 					</h3>
 					<p>
 						{#if result.monday == 'true'}Mo{/if}

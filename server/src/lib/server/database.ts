@@ -192,6 +192,11 @@ export function search_section(
         query += ` AND sections.end_time <= ?`;
         params.push(section_query.endTime);
     }
+
+    if (section_query.class_number) {
+        query += ` AND (LOWER(sections.class_number) LIKE ?)`;
+        params.push(`%${section_query.class_number}%`);
+    }
         
 
     // Add ordering similar to course search when description is provided

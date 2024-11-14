@@ -61,6 +61,7 @@ export class SectionQuery {
         public daysOfWeek: (string|null)[] = null,
         public startTime: string|null = null,
         public endTime: string|null = null,
+        public class_number: string|null = null,
     ) {}
 }
 

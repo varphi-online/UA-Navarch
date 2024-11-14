@@ -5,6 +5,7 @@
 	import * as Select from '$lib/components/ui/select';
 	import { CourseQuery, Course, Section, SectionQuery } from '$lib/query.svelte';
 	import Input from './components/ui/input/input.svelte';
+	import type { Snapshot } from '../routes/$types';
 
 	let {
 		courses = $bindable(),
@@ -23,6 +24,7 @@
 	let num: string | null = $state(null);
 	let attrs = $state([]);
 	let instructor: string | null = $state(null);
+	let class_num: string | null = $state(null);
 	let startTime = $state('08:00');
 	let endTime = $state('18:00');
 	let daysOfWeek: string[] = $state([]);
@@ -46,7 +48,8 @@
 			activeFilters.includes('instructor') ? instructor : null,
 			activeFilters.includes('days') ? daysOfWeek : [],
 			activeFilters.includes('times') ? startTime : null,
-			activeFilters.includes('times') ? endTime : null
+			activeFilters.includes('times') ? endTime : null,
+			activeFilters.includes('class_id') ? class_num : null,
 		)
 	);
 	//$effect(()=>console.log(attrs.length))
@@ -58,7 +61,8 @@
 			(num && num.length > 0) ||
 			attrs.length > 0 ||
 			daysOfWeek.length > 0 ||
-			(instructor && instructor.length > 0)
+			(instructor && instructor.length > 0)||
+			(class_num&&class_num.length > 0)
 		) {
 			if (currentController) {
 				currentController.abort();
@@ -237,10 +241,21 @@
 				placeholder="Instructor"
 			/>
 		</div>{/if}
+		{#if activeFilters.includes('class_id') && searchType.value == 'section'}<div
+			class="h-fit"
+			transition:grow
+		>
+			<Input
+				type="number"
+				class="z-10 m-0 h-full rounded-none border-y-0 border-l-0 border-r-[1px] border-gray-300 focus-visible:ring-transparent focus-visible:ring-offset-0"
+				bind:value={class_num}
+				placeholder="Class ID"
+			/>
+		</div>{/if}
 	{#if activeFilters.includes('attributes')}<div class="h-fit" transition:grow>
 			<Select.Root multiple bind:selected={attrs}>
 				<Select.Trigger
-					class="z-10 m-0 h-full overflow-hidden rounded-none border-y-0 border-l-0 border-r-[1px] border-gray-300"
+					class="z-10 m-0 h-full overflow-hidden rounded-none border-y-0 border-l-0 border-r-[1px] border-gray-30"
 				>
 					<Select.Value class="overflow-hidden" placeholder="Course Attribute(s)" />
 				</Select.Trigger>
@@ -319,6 +334,7 @@
 				<Select.Item value="days">Week Days</Select.Item>
 				<Select.Item value="times">Times</Select.Item>
 				<Select.Item value="instructor">Instructor</Select.Item>
+				<Select.Item value="class_id">Class ID</Select.Item>
 			{/if}
 		</Select.Content>
 	</Select.Root>
