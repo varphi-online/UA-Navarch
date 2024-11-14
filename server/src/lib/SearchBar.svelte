@@ -6,16 +6,58 @@
 	import { CourseQuery, Course, Section, SectionQuery } from '$lib/query.svelte';
 	import Input from './components/ui/input/input.svelte';
 	import type { Snapshot } from '../routes/$types';
+	import { persisted } from 'svelte-persisted-store';
+	import type { Writable } from 'svelte/store';
+
+	import { getContext } from 'svelte';
+	import type { QueryParams } from './queryStore.svelte';
+	const queryParams: Writable<QueryParams> = getContext('queryParams');
 
 	let {
 		courses = $bindable(),
 		sections = $bindable(),
-		limit = $bindable()
-	}: { courses: Course[]; sections: Section[]; limit: number } = $props();
+		limit = $bindable(),
+
+		//desc = $bindable(),
+		//dept = $bindable(),
+		//num = $bindable(),
+		//attrs = $bindable(),
+		//instructor = $bindable(),
+		//class_num = $bindable(),
+		//startTime = $bindable(),
+		//endTime = $bindable(),
+		//daysOfWeek = $bindable(),
+		//filters = $bindable(),
+		//searchType = $bindable()
+	}: {
+		courses: Course[];
+		sections: Section[];
+		limit: number;
+
+		//desc: string | null;
+		//dept: string | null;
+		//num: string | null;
+		//attrs: any[];
+		//instructor: string | null;
+		//class_num: string | null;
+		//startTime: string;
+		//endTime: string;
+		//daysOfWeek: string[];
+//
+		//filters: {
+		//	value: string;
+		//}[];
+		//searchType: {
+		//	value: string;
+		//	label: string;
+		//};
+	} = $props();
+
+
 
 	// Filter
 	let searchType = $state({ value: 'course', label: 'Courses' });
-	let filters = $state([{ value: 'description' }, { value: 'days' }, { value: 'times' }]);
+	let filters = $state([{ value: 'description' }, { value: 'departments' },{ value: 'course_number' },{ value: 'days' }, { value: 'times' }]);
 	let activeFilters: string[] = $derived(filters.map((filter) => filter.value));
 
 	// Filter Bindings
@@ -49,7 +91,7 @@
 			activeFilters.includes('days') ? daysOfWeek : [],
 			activeFilters.includes('times') ? startTime : null,
 			activeFilters.includes('times') ? endTime : null,
-			activeFilters.includes('class_id') ? class_num : null,
+			activeFilters.includes('class_id') ? class_num : null
 		)
 	);
 	//$effect(()=>console.log(attrs.length))
@@ -61,14 +103,14 @@
 			(num && num.length > 0) ||
 			attrs.length > 0 ||
 			daysOfWeek.length > 0 ||
-			(instructor && instructor.length > 0)||
-			(class_num&&class_num.length > 0)
+			(instructor && instructor.length > 0) ||
+			(class_num && class_num.length > 0)
 		) {
 			if (currentController) {
 				currentController.abort();
 			}
 			let debounce_time = 300;
-			if (limit&&desc&&desc.length < 6&&attrs.length == 0) {
+			if (limit && desc && desc.length < 6 && attrs.length == 0) {
 				debounce_time = 40 * desc.length;
 			}
 
@@ -82,10 +124,12 @@
 					sections = [];
 				});
 			} else {
-				sectionSearch(section_query, course_query,currentController.signal,debounce_time).then((result) => {
-					sections = result;
-					courses = [];
-				});
+				sectionSearch(section_query, course_query, currentController.signal, debounce_time).then(
+					(result) => {
+						sections = result;
+						courses = [];
+					}
+				);
 			}
 		} else {
 			courses = [];
@@ -185,7 +229,7 @@
 		}
 	}
 	function highlight(text: string): string {
-		if (desc&&desc.length < 4) return text;
+		if (desc && desc.length < 4) return text;
 		const regex = new RegExp(`(${desc})`, 'gi');
 		return text.replace(regex, `<mark>$1</mark>`);
 	}
@@ -241,7 +285,7 @@
 				placeholder="Instructor"
 			/>
 		</div>{/if}
-		{#if activeFilters.includes('class_id') && searchType.value == 'section'}<div
+	{#if activeFilters.includes('class_id') && searchType.value == 'section'}<div
 			class="h-fit"
 			transition:grow
 		>
@@ -255,7 +299,7 @@
 	{#if activeFilters.includes('attributes')}<div class="h-fit" transition:grow>
 			<Select.Root multiple bind:selected={attrs}>
 				<Select.Trigger
-					class="z-10 m-0 h-full overflow-hidden rounded-none border-y-0 border-l-0 border-r-[1px] border-gray-30"
+					class="border-gray-30 z-10 m-0 h-full overflow-hidden rounded-none border-y-0 border-l-0 border-r-[1px]"
 				>
 					<Select.Value class="overflow-hidden" placeholder="Course Attribute(s)" />
 				</Select.Trigger>

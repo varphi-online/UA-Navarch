@@ -1,21 +1,29 @@
 <script lang="ts">
 	import { fade } from 'svelte/transition';
 	import { Course, Section } from '$lib/query.svelte';
-	let { course, small = false }: { course: Course, small: boolean } = $props();
+	let {
+		course,
+		small = false,
+		focused = $bindable()
+	}: {
+		course: Course;
+		small: boolean;
+		focused: { course: Course | null; section: Section | null };
+	} = $props();
 	import Lock from 'lucide-svelte/icons/lock';
 	import Link from 'lucide-svelte/icons/link';
 	import Hammer from 'lucide-svelte/icons/hammer';
 	import BookmarkPlus from 'lucide-svelte/icons/bookmark-plus';
-
-	import type { Writable } from 'svelte/store';
 	import * as Tooltip from '$lib/components/ui/tooltip/index.js';
+	import type { Writable } from 'svelte/store';
+
 	import { getContext } from 'svelte';
-	const selected: Writable<{courses: Course[], sections: Section[]}> = getContext('selected');
+	const selected: Writable<{ courses: Course[]; sections: Section[] }> = getContext('selected');
 	let hovered = $state(false);
 </script>
 
 <div
-	class={`${small ? " h-min":"h-80"} rounded-3xl border-2 border-solid border-gray-300`}
+	class={`${small ? ' h-min' : 'h-80'} rounded-3xl border-2 border-solid border-gray-300`}
 	role="contentinfo"
 	onmouseenter={() => (hovered = true)}
 	onmouseleave={() => (hovered = false)}
@@ -129,19 +137,30 @@
 			<h4 class="text-lg font-semibold">{@html course.title}</h4>
 		</div>
 		{#if !small}
-		<p
-			class=" inset-0 line-clamp-4 flex-auto overflow-hidden text-ellipsis whitespace-normal break-words bg-gradient-to-b from-black via-black to-transparent to-95% bg-clip-text text-transparent transition-all duration-500 ease-in-out"
-		>
-			{@html course.description}
-		</p>
-		<div class="flex h-6 flex-row justify-end">
-			{#if (window.matchMedia("(max-width: 600px)").matches||hovered)&&!$selected.courses.includes(course)}
-				<div transition:fade={{ duration: 300 }}>
-					<BookmarkPlus onclick={() => {$selected.courses = [...$selected.courses, course]}} class="cursor-pointer" />
-				</div>
-			{/if}
-		</div>
+			<button
+				onclick={() => (focused.course = course)}
+				class=" inset-0 line-clamp-4 h-full flex-auto"
+			>
+				<p
+					class="h-full overflow-hidden text-ellipsis whitespace-normal break-words bg-gradient-to-b
+			from-black via-black to-transparent to-95% bg-clip-text text-transparent transition-all duration-500 ease-in-out"
+				>
+					{@html course.description}
+				</p>
+			</button>
+
+			<div class="flex h-6 flex-row justify-end">
+				{#if (window.matchMedia('(max-width: 600px)').matches || hovered) && !$selected.courses.includes(course)}
+					<div transition:fade={{ duration: 300 }}>
+						<BookmarkPlus
+							onclick={() => {
+								$selected.courses = [...$selected.courses, course];
+							}}
+							class="cursor-pointer"
+						/>
+					</div>
+				{/if}
+			</div>
 		{/if}
-		
 	</div>
 </div>

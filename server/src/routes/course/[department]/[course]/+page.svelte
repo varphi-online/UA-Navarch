@@ -12,7 +12,7 @@
 {$page.params.department} {$page.params.course}
 {#if course !== undefined}
     <h1>{course.title}</h1>
-    <p>{$selected}</p>
+    <p>{@html course.description}</p>
 {:else}
     Not a course
 {/if}
