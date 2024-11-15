@@ -9,8 +9,9 @@
 	import { Course, Section } from '$lib/query.svelte';
 	import { fade } from 'svelte/transition';
 	import SectionCard from '$lib/SectionCard.svelte';
-	import type { QueryParams } from '$lib/queryStore.svelte';
+	import type {  QueryParams } from '$lib/queryStore.svelte';
 	import { browser } from '$app/environment';
+	
 
 	const queryParams: Writable<QueryParams> = writable(<QueryParams>{
 		desc: null,
@@ -45,15 +46,15 @@
 				};
 	};
 
-	const selected: Writable<{ courses: Course[]; sections: Section[] }> = writable(getSaveData());
-	const queryResponse: Writable<{ courses: Course[]; sections: Section[] }> = writable({
+	const selected: { courses: Course[]; sections: Section[] } = $state(getSaveData());
+	const queryResponse: { courses: Course[]; sections: Section[] } = $state({
 					courses: [],
 					sections: []
 				});
 
-	selected.subscribe(() => {
+	$effect(() => {
 		if (browser) {
-			localStorage.setItem('saved', JSON.stringify($selected));
+			localStorage.setItem('saved', JSON.stringify(selected));
 		}
 	});
 
@@ -63,7 +64,7 @@
 </script>
 
 <Sheet.Root>
-	{#if $selected.courses.length != 0 || $selected.sections.length != 0}
+	{#if selected.courses.length != 0 || selected.sections.length != 0}
 		<div transition:fade>
 			<Sheet.Trigger
 				class=" fixed right-3  top-3 rounded-3xl border-2 border-solid border-slate-500 border-opacity-10 bg-white bg-opacity-75 p-2 transition-all duration-300 hover:border-opacity-100 hover:bg-opacity-100"
@@ -77,21 +78,21 @@
 			<Sheet.Title>Saved items</Sheet.Title>
 			<Sheet.Description>
 				<div class="overflow-y-auto flex flex-col h-[90cqh] pr-2">
-				{#if $selected.courses.length > 0}
+				{#if selected.courses.length > 0}
 					<h1>Courses</h1>
 					<div class="flex flex-col gap-3">
-						{#each $selected.courses as course}
+						{#each selected.courses as course}
 							<CourseCard {course} small={true} />{/each}
 					</div>
 				{/if}
-				{#if $selected.sections.length > 0}
+				{#if selected.sections.length > 0}
 					<h1>Sections</h1>
 					<div class="flex flex-col gap-3">
-					{#each $selected.sections as section}
+					{#each selected.sections as section}
 						<SectionCard {section} small={true} />
 					{/each}</div>
 				{/if}
-				{#if $selected.courses.length == 0 && $selected.sections.length == 0}
+				{#if selected.courses.length == 0 && selected.sections.length == 0}
 					<p>No saved courses or sections!</p>
 				{/if}
 				</div>

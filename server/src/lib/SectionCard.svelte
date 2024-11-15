@@ -7,10 +7,9 @@
 	import Hammer from 'lucide-svelte/icons/hammer';
 	import BookmarkPlus from 'lucide-svelte/icons/bookmark-plus';
 
-	import type { Writable } from 'svelte/store';
 	import * as Tooltip from '$lib/components/ui/tooltip/index.js';
 	import { getContext } from 'svelte';
-	const selected: Writable<{ courses: Course[]; sections: Section[] }> = getContext('selected');
+	const selected: { courses: Course[]; sections: Section[] } = getContext('selected');
 	let hovered = $state(false);
 </script>
 
@@ -43,11 +42,11 @@
 				<!--{@html section.description}-->
 			</p>
 			<div class="flex h-6 flex-row justify-end">
-				{#if (window.matchMedia('(max-width: 600px)').matches || hovered) && !$selected.sections.includes(section)}
+				{#if (window.matchMedia('(max-width: 600px)').matches || hovered) && !selected.sections.includes(section)}
 					<div transition:fade={{ duration: 300 }}>
 						<BookmarkPlus
 							onclick={() => {
-								$selected.sections = [...$selected.sections, section];
+								selected.sections = [...selected.sections, section];
 							}}
 							class="cursor-pointer"
 						/>

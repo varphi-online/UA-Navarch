@@ -5,74 +5,17 @@
 	import * as Select from '$lib/components/ui/select';
 	import { CourseQuery, Course, Section, SectionQuery } from '$lib/query.svelte';
 	import Input from './components/ui/input/input.svelte';
-	import type { Snapshot } from '../routes/$types';
-	import { persisted } from 'svelte-persisted-store';
 	import type { Writable } from 'svelte/store';
-
 	import { getContext } from 'svelte';
 	import type { QueryParams } from './queryStore.svelte';
+
+	let { limit = $bindable() }: { limit: number } = $props();
 	const queryParams: Writable<QueryParams> = getContext('queryParams');
-	const queryResponse: Writable<{ courses: Course[]; sections: Section[] }> = getContext('queryResponse');
-
+	const queryResponse: { courses: Course[]; sections: Section[] } = getContext('queryResponse');
 	let firstLoad = true;
-
-	let {
-		//courses = $bindable(),
-		//sections = $bindable(),
-		limit = $bindable(),
-
-		//desc = $bindable(),
-		//$queryParams.dept = $bindable(),
-		//num = $bindable(),
-		//$queryParams.attrs = $bindable(),
-		//instructor = $bindable(),
-		//$queryParams.class_num = $bindable(),
-		//startTime = $bindable(),
-		//endTime = $bindable(),
-		//$queryParams.daysOfWeek = $bindable(),
-		//filters = $bindable(),
-		//searchType = $bindable()
-	}: {
-		//courses: Course[];
-		//sections: Section[];
-		limit: number;
-
-		//desc: string | null;
-		//$queryParams.dept: string | null;
-		//num: string | null;
-		//$queryParams.attrs: any[];
-		//instructor: string | null;
-		//$queryParams.class_num: string | null;
-		//startTime: string;
-		//endTime: string;
-		//$queryParams.daysOfWeek: string[];
-//
-		//filters: {
-		//	value: string;
-		//}[];
-		//searchType: {
-		//	value: string;
-		//	label: string;
-		//};
-	} = $props();
-
-
-
-	// Filter
-	//let searchType = $state({ value: 'course', label: 'Courses' });
-	//let filters = $state([{ value: 'description' }, { value: 'departments' },{ value: 'course_number' },{ value: 'days' }, { value: 'times' }]);
 	let activeFilters: string[] = $derived($queryParams.filters.map((filter) => filter.value));
-
-	// Filter Bindings
-	//let desc: string | null = $state(null);
-	//let $queryParams.dept: string | null = $state(null);
-	//let num: string | null = $state(null);
-	//let $queryParams.attrs = $state([]);
-	//let instructor: string | null = $state(null);
-	//let $queryParams.class_num: string | null = $state(null);
-	//let startTime = $state('08:00');
-	//let endTime = $state('18:00');
-	//let $queryParams.daysOfWeek: string[] = $state([]);
+	// AbortController for Debounce
+	let currentController: AbortController | null = null;
 
 	// Query-Related
 	let course_query: CourseQuery = $derived(
@@ -84,6 +27,7 @@
 			activeFilters.includes('attributes') ? $queryParams.attrs.map((filter) => filter.value) : []
 		)
 	);
+
 	let section_query: SectionQuery = $derived(
 		new SectionQuery(
 			null,
@@ -97,10 +41,56 @@
 			activeFilters.includes('class_id') ? $queryParams.class_num : null
 		)
 	);
+
+	function highlight(text: string): string {
+		if ($queryParams.desc && $queryParams.desc.length < 4) return text;
+		const regex = new RegExp(`(${$queryParams.desc})`, 'gi');
+		return text.replace(regex, `<mark>$1</mark>`);
+	}
+
+	async function searchWithDebounce<T>(
+		query: Record<string, any>,
+		signal: AbortSignal,
+		searchType: 'course' | 'section',
+		debounceTime: number = 300
+	): Promise<T[]> {
+		try {
+			await new Promise((resolve, reject) => {
+				const timeout = setTimeout(resolve, debounceTime);
+				signal.addEventListener('abort', () => {
+					clearTimeout(timeout);
+					reject(new Error('Cancelled'));
+				});
+			});
+
+			const response = await fetch('/api/search', {
+				method: 'POST',
+				body: JSON.stringify({ ...query, limit }),
+				headers: {
+					'content-type': 'application/json',
+					'search-type': searchType
+				},
+				signal
+			});
+
+			return await response.json();
+		} catch (error) {
+			if (error instanceof Error && error.name === 'AbortError') {
+				// Silently handle aborted requests
+				return [];
+			}
+			throw error; // Re-throw other errors
+		}
+	}
+
 	// Search on args update
 	$effect(() => {
-		if(section_query||course_query){};// Hack for store reactivity
-		if (firstLoad){firstLoad = false; return;}
+		if (section_query || course_query) {
+		}
+		if (firstLoad) {
+			firstLoad = false;
+			return;
+		}
 		if (
 			($queryParams.desc && $queryParams.desc.length > 0) ||
 			($queryParams.dept && $queryParams.dept.length > 0) ||
@@ -110,11 +100,14 @@
 			($queryParams.instructor && $queryParams.instructor.length > 0) ||
 			($queryParams.class_num && $queryParams.class_num.length > 0)
 		) {
-			if (currentController) {
-				currentController.abort();
-			}
+			if (currentController) currentController.abort();
 			let debounce_time = 300;
-			if (limit && $queryParams.desc && $queryParams.desc.length < 6 && $queryParams.attrs.length == 0) {
+			if (
+				limit &&
+				$queryParams.desc &&
+				$queryParams.desc.length < 6 &&
+				$queryParams.attrs.length == 0
+			) {
 				debounce_time = 40 * $queryParams.desc.length;
 			}
 
@@ -122,121 +115,37 @@
 			currentController = new AbortController();
 
 			if ($queryParams.searchType.value == 'course') {
-				courseSearch(course_query, currentController.signal, debounce_time).then((result) => {
+				searchWithDebounce<Course>({course: course_query},currentController.signal,"course",debounce_time).then((result) => {
 					result.forEach((course) => (course.description = highlight(course.description)));
-					$queryResponse.courses = result;
-					$queryResponse.sections = [];
+					queryResponse.courses = result;
+					queryResponse.sections = [];
 				});
 			} else {
-				sectionSearch(section_query, course_query, currentController.signal, debounce_time).then(
+				searchWithDebounce<Section>({section: section_query,course: course_query},currentController.signal,"section",debounce_time).then(
 					(result) => {
-						$queryResponse.sections = result;
-						$queryResponse.courses = [];
+						queryResponse.sections = result;
+						queryResponse.courses = [];
 					}
 				);
 			}
 		} else {
-			$queryResponse.courses = [];
-			$queryResponse.sections = [];
+			queryResponse.courses = [];
+			queryResponse.sections = [];
 		}
 	});
-
-	let currentController: AbortController | null = null;
 
 	$effect(() => {
 		// Reset limit on any query change
-		if ($queryParams.desc || $queryParams.dept || $queryParams.num || $queryParams.attrs || $queryParams.daysOfWeek || $queryParams.instructor) limit = 15;
+		if (
+			$queryParams.desc ||
+			$queryParams.dept ||
+			$queryParams.num ||
+			$queryParams.attrs ||
+			$queryParams.daysOfWeek ||
+			$queryParams.instructor
+		)
+			limit = 15;
 	});
-
-	async function courseSearch(
-		local: CourseQuery,
-		signal: AbortSignal,
-		debounce_time: number = 300
-	): Promise<Course[]> {
-		try {
-			await new Promise((resolve, reject) => {
-				const timeout = setTimeout(resolve, debounce_time);
-				signal.addEventListener('abort', () => {
-					clearTimeout(timeout);
-					reject(new Error('Cancelled'));
-				});
-			});
-
-			const response = await fetch('/api/search', {
-				method: 'POST',
-				body: JSON.stringify({ course: local, limit }),
-				headers: {
-					'content-type': 'application/json',
-					'search-type': 'course'
-				},
-				signal // Pass the signal to fetch
-			});
-
-			const out = await response.json();
-			return out;
-		} catch (error) {
-			if (error instanceof Error && error.name === 'AbortError') {
-				// Silently handle aborted requests
-				return [];
-			}
-			throw error; // Re-throw other errors
-		}
-	}
-
-	/*
-	async function courseSearch(local: CourseQuery): Promise<Course[]> {
-		await new Promise((resolve) => setTimeout(resolve, 1000));
-		let response = await fetch('/api/search', {
-			method: 'POST',
-			body: JSON.stringify({ course: local, limit }),
-			headers: {
-				'content-type': 'application/json',
-				'search-type': 'course'
-			}
-		});
-		let out = response.json();
-		return out;
-	}
-		*/
-
-	async function sectionSearch(
-		s_query: SectionQuery,
-		c_query: CourseQuery,
-		signal: AbortSignal,
-		debounce_time: number = 300
-	): Promise<Section[]> {
-		try {
-			await new Promise((resolve, reject) => {
-				const timeout = setTimeout(resolve, debounce_time);
-				signal.addEventListener('abort', () => {
-					clearTimeout(timeout);
-					reject(/*new Error('Cancelled')*/);
-				});
-			});
-
-			let response = await fetch('/api/search', {
-				method: 'POST',
-				body: JSON.stringify({ section: s_query, course: c_query, limit }),
-				headers: {
-					'content-type': 'application/json',
-					'search-type': 'section'
-				}
-			});
-			let out = response.json();
-			return out;
-		} catch (error) {
-			if (error instanceof Error && error.name === 'AbortError') {
-				// Silently handle aborted requests
-				return [];
-			}
-			throw error; // Re-throw other errors
-		}
-	}
-	function highlight(text: string): string {
-		if ($queryParams.desc && $queryParams.desc.length < 4) return text;
-		const regex = new RegExp(`(${$queryParams.desc})`, 'gi');
-		return text.replace(regex, `<mark>$1</mark>`);
-	}
 </script>
 
 <div

@@ -13,13 +13,12 @@
 	import Button from '$lib/components/ui/button/button.svelte';
 	import { CalendarFold } from 'lucide-svelte';
 	import SectionCard from '$lib/SectionCard.svelte';
-	import type { Writable } from 'svelte/store';
 	import { getContext } from 'svelte';
 	function addLimit() {
 		limit += 20;
 	}
 	let dialogOpen = $derived(focused.course != null || focused.section != null);
-	const queryResponse: Writable<{ courses: Course[]; sections: Section[] }> = getContext('queryResponse');
+	const queryResponse: { courses: Course[]; sections: Section[] } = getContext('queryResponse');
 </script>
 
 <a href="/schedule">
@@ -39,28 +38,28 @@
 	</div>
 	<SearchBar bind:limit/>
 </div>
-{#if $queryResponse.sections.length == 0 && $queryResponse.courses.length == 0}
+{#if queryResponse.sections.length == 0 && queryResponse.courses.length == 0}
 	<div class="flex w-full justify-center">No results found</div>
 {:else}
 	<div class="grid justify-center gap-6 p-10 sm:grid-cols-1 md:grid-cols-3 lg:grid-cols-5">
-		{#if $queryResponse.courses.length > 0}
-			{#each $queryResponse.courses as result}
+		{#if queryResponse.courses.length > 0}
+			{#each queryResponse.courses as result}
 				<CourseCard course={result} bind:focused />
 			{/each}
 			<!--<Button onclick={() => addLimit()}>Try Load More</Button>-->
 		{/if}
-		{#if $queryResponse.sections.length > 0}
-			{#each $queryResponse.sections as result}
+		{#if queryResponse.sections.length > 0}
+			{#each queryResponse.sections as result}
 				<SectionCard section={result}/>
 			{/each}
 			<!--<Button onclick={() => addLimit()}>Try Load More</Button>-->
 		{/if}
 	</div>
 {/if}
-{#if (!($queryResponse.sections.length < 14) && $queryResponse.courses.length == 0) || (!($queryResponse.courses.length < 14) && $queryResponse.sections.length == 0)}
+{#if (!(queryResponse.sections.length < 14) && queryResponse.courses.length == 0) || (!(queryResponse.courses.length < 14) && queryResponse.sections.length == 0)}
 	<div class="mb-8 flex w-full flex-col items-center gap-6">
-		{#if $queryResponse.sections.length == 0}<p>Showing {$queryResponse.courses.length} results</p>{/if}
-		{#if $queryResponse.courses.length == 0}<p>Showing {$queryResponse.sections.length} results</p>{/if}
+		{#if queryResponse.sections.length == 0}<p>Showing {queryResponse.courses.length} results</p>{/if}
+		{#if queryResponse.courses.length == 0}<p>Showing {queryResponse.sections.length} results</p>{/if}
 		<Button onclick={() => addLimit()}>Try Load More</Button>
 	</div>
 {/if}

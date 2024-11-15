@@ -1,8 +1,7 @@
 <script lang="ts">
-	import type { Writable } from 'svelte/store';
 	import { getContext } from 'svelte';
 	import { Course, Section } from './query.svelte';
-	const selected: Writable<{ courses: Course[]; sections: Section[] }> = getContext('selected');
+	const selected: { courses: Course[]; sections: Section[] } = getContext('selected');
 
 	function timeConv(time: string): number {
 		if (time.toLowerCase() == 'tbd') return -1;
@@ -48,7 +47,7 @@
         <div class=" col-start-4 row-start-[73] row-end-[107] rounded-lg bg-red-600">&nbsp;</div>
 		<div class="col-start-3 rounded-lg bg-blue-600" style={`grid-row-start: ${timeConv("12:00")};grid-row-end: ${timeConv("13:50")};`}>&nbsp;</div>
 		-->
-		{#each $selected.sections as section}
+		{#each selected.sections as section}
 			{@const start = timeConv(section.start_time)}
 			{@const end = timeConv(section.end_time)}
 			{@const color=objectToColor(section)}
