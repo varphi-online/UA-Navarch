@@ -4,11 +4,11 @@
 	let {
 		course,
 		small = false,
-		focused = $bindable()
+		focused = $bindable({course:null,section:null})
 	}: {
 		course: Course;
-		small: boolean;
-		focused: { course: Course | null; section: Section | null };
+		small?: boolean;
+		focused?: { course: Course | null; section: Section | null };
 	} = $props();
 	import Lock from 'lucide-svelte/icons/lock';
 	import Link from 'lucide-svelte/icons/link';

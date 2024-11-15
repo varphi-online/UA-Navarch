@@ -1,10 +1,8 @@
 <script lang="ts">
 	import { Course, Section } from '$lib/query.svelte';
 	import * as Dialog from '$lib/components/ui/dialog';
-	import { type QueryParams } from '$lib/queryStore.svelte';
-	import { browser } from '$app/environment';
-	let courses: Course[] = $state([]);
-	let sections: Section[] = $state([]);
+	//let courses: Course[] = $state([]);
+	//let sections: Section[] = $state([]);
 	let focused: { course: Course | null; section: Section | null } = $state({
 		course: null,
 		section: null
@@ -15,81 +13,13 @@
 	import Button from '$lib/components/ui/button/button.svelte';
 	import { CalendarFold } from 'lucide-svelte';
 	import SectionCard from '$lib/SectionCard.svelte';
+	import type { Writable } from 'svelte/store';
+	import { getContext } from 'svelte';
 	function addLimit() {
 		limit += 20;
 	}
 	let dialogOpen = $derived(focused.course != null || focused.section != null);
-
-	let getter = (): QueryParams => 
-	{
-		let base = <QueryParams>{
-			desc: null,
-			dept: null,
-			num: null,
-			attrs: [],
-			instructor: null,
-			class_num: null,
-			startTime: '08:00',
-			endTime: '18:00',
-			daysOfWeek: [],
-			filters: [
-				{ value: 'description' },
-				{ value: 'departments' },
-				{ value: 'course_number' },
-				{ value: 'days' },
-				{ value: 'times' }
-			],
-			searchType: { value: 'course', label: 'Courses' }
-		};
-		let query;
-		if (browser){
-			query = localStorage.getItem('query');
-		}
-
-		return query ? JSON.parse(query) : base;
-	};
-
-	let queryParams = getter();
-
-	let desc: string | null = $state(queryParams.desc);
-	let dept: string | null = $state(queryParams.dept);
-	let num: string | null = $state(queryParams.num);
-	let attrs = $state(queryParams.attrs);
-	let instructor: string | null = $state(queryParams.instructor);
-	let class_num: string | null = $state(queryParams.class_num);
-	let startTime = $state(queryParams.startTime);
-	let endTime = $state(queryParams.endTime);
-	let daysOfWeek: string[] = $state(queryParams.daysOfWeek);
-	let filters = $state(queryParams.filters);
-	let searchType = $state(queryParams.searchType);
-
-	$effect(() => {
-		localStorage.setItem(
-			'query',
-			JSON.stringify(<QueryParams>{
-				desc,
-				dept,
-				num,
-				attrs,
-				instructor,
-				class_num,
-				startTime,
-				endTime,
-				daysOfWeek,
-				filters,
-				searchType
-			})
-		);
-	});
-
-	/*
-	export const snapshot: Snapshot<string> = {
-  	capture: () => JSON.stringify({ filters, desc, dept, num, attrs, instructor, startTime, endTime, daysOfWeek }),
-  	restore: (value) => {
-  	  ({ filters, desc, dept, num, attrs, instructor, startTime, endTime, daysOfWeek } = JSON.parse(value));
-  	}
-	};
-	*/
+	const queryResponse: Writable<{ courses: Course[]; sections: Section[] }> = getContext('queryResponse');
 </script>
 
 <a href="/schedule">
@@ -107,45 +37,30 @@
 			class="h-16"
 		/><span class="text-5xl font-bold text-[#0C234B]">RCH</span>
 	</div>
-	<SearchBar
-		bind:courses
-		bind:sections
-		bind:limit
-		bind:desc
-		bind:dept
-		bind:num
-		bind:attrs
-		bind:instructor
-		bind:class_num
-		bind:startTime
-		bind:endTime
-		bind:daysOfWeek
-		bind:filters
-		bind:searchType
-	/>
+	<SearchBar bind:limit/>
 </div>
-{#if sections.length == 0 && courses.length == 0}
+{#if $queryResponse.sections.length == 0 && $queryResponse.courses.length == 0}
 	<div class="flex w-full justify-center">No results found</div>
 {:else}
 	<div class="grid justify-center gap-6 p-10 sm:grid-cols-1 md:grid-cols-3 lg:grid-cols-5">
-		{#if courses.length > 0}
-			{#each courses as result}
-				<CourseCard course={result} small={false} bind:focused />
+		{#if $queryResponse.courses.length > 0}
+			{#each $queryResponse.courses as result}
+				<CourseCard course={result} bind:focused />
 			{/each}
 			<!--<Button onclick={() => addLimit()}>Try Load More</Button>-->
 		{/if}
-		{#if sections.length > 0}
-			{#each sections as result}
-				<SectionCard section={result} small={false} />
+		{#if $queryResponse.sections.length > 0}
+			{#each $queryResponse.sections as result}
+				<SectionCard section={result}/>
 			{/each}
 			<!--<Button onclick={() => addLimit()}>Try Load More</Button>-->
 		{/if}
 	</div>
 {/if}
-{#if (!(sections.length < 14) && courses.length == 0) || (!(courses.length < 14) && sections.length == 0)}
+{#if (!($queryResponse.sections.length < 14) && $queryResponse.courses.length == 0) || (!($queryResponse.courses.length < 14) && $queryResponse.sections.length == 0)}
 	<div class="mb-8 flex w-full flex-col items-center gap-6">
-		{#if sections.length == 0}<p>Showing {courses.length} results</p>{/if}
-		{#if courses.length == 0}<p>Showing {sections.length} results</p>{/if}
+		{#if $queryResponse.sections.length == 0}<p>Showing {$queryResponse.courses.length} results</p>{/if}
+		{#if $queryResponse.courses.length == 0}<p>Showing {$queryResponse.sections.length} results</p>{/if}
 		<Button onclick={() => addLimit()}>Try Load More</Button>
 	</div>
 {/if}

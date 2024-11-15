@@ -55,10 +55,10 @@
 			{#each days(section) as day, day_index}
 				{#if day}
 					<div
-						class="rounded-lg"
+						class="rounded-lg flex justify-center items-center"
 						style={`background-color: ${color};grid-column-start: ${day_index + 1};grid-row-start: ${start};grid-row-end: ${end};`}
 					>
-						&nbsp;
+						<p class="text-sm">{section.department} {section.course_number}</p>
 					</div>
 				{/if}
 			{/each}

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { fade } from 'svelte/transition';
 	import { Course, Section } from '$lib/query.svelte';
-	let { section, small = false }: { section: Section; small: boolean } = $props();
+	let { section, small = false }: { section: Section; small?: boolean } = $props();
 	import Lock from 'lucide-svelte/icons/lock';
 	import Link from 'lucide-svelte/icons/link';
 	import Hammer from 'lucide-svelte/icons/hammer';

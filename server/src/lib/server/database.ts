@@ -177,12 +177,14 @@ export function search_section(
     if (course_query.attributes.includes("xc")) query += ` AND courses.exit_course = 'true'`;
 
     // Add section-specific filters
-    if (section_query.daysOfWeek.includes("mo")) query += ` AND sections.monday = 'true'`;
-    if (section_query.daysOfWeek.includes("tu")) query += ` AND sections.tuesday = 'true'`;
-    if (section_query.daysOfWeek.includes("we")) query += ` AND sections.wednesday = 'true'`;
-    if (section_query.daysOfWeek.includes("th")) query += ` AND sections.thursday = 'true'`;
-    if (section_query.daysOfWeek.includes("fr")) query += ` AND sections.friday = 'true'`;
-
+    if (section_query.daysOfWeek.length != 0 ){
+    if (section_query.daysOfWeek.includes("mo")){query += ` AND sections.monday = 'true'`} else{query += ` AND sections.monday = 'false'`};
+    if (section_query.daysOfWeek.includes("tu")){query += ` AND sections.tuesday = 'true'`} else{query += ` AND sections.tuesday = 'false'`};
+    if (section_query.daysOfWeek.includes("we")){query += ` AND sections.wednesday = 'true'`} else{query += ` AND sections.wednesday = 'false'`};
+    if (section_query.daysOfWeek.includes("th")){query += ` AND sections.thursday = 'true'`} else{query += ` AND sections.thursday = 'false'`};
+    if (section_query.daysOfWeek.includes("fr")){query += ` AND sections.friday = 'true'`} else{query += ` AND sections.friday = 'false'`};
+    }
+    
     if (section_query.startTime) {
         query += ` AND sections.start_time >= ?`;
         params.push(section_query.startTime);

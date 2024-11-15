@@ -33,7 +33,10 @@
 	});
 
 	let getSaveData = (): { courses: Course[]; sections: Section[] } => {
-		let savedData = localStorage.getItem('saved');
+		let savedData;
+		if (browser) {
+			savedData = localStorage.getItem('saved');
+		}
 		return savedData
 			? JSON.parse(savedData)
 			: {
@@ -43,6 +46,10 @@
 	};
 
 	const selected: Writable<{ courses: Course[]; sections: Section[] }> = writable(getSaveData());
+	const queryResponse: Writable<{ courses: Course[]; sections: Section[] }> = writable({
+					courses: [],
+					sections: []
+				});
 
 	selected.subscribe(() => {
 		if (browser) {
@@ -52,6 +59,7 @@
 
 	setContext('selected', selected);
 	setContext('queryParams', queryParams);
+	setContext('queryResponse', queryResponse);
 </script>
 
 <Sheet.Root>
@@ -64,26 +72,29 @@
 			</Sheet.Trigger>
 		</div>
 	{/if}
-	<Sheet.Content>
+	<Sheet.Content class="pr-2">
 		<Sheet.Header>
 			<Sheet.Title>Saved items</Sheet.Title>
 			<Sheet.Description>
+				<div class="overflow-y-auto flex flex-col h-[90cqh] pr-2">
 				{#if $selected.courses.length > 0}
 					<h1>Courses</h1>
 					<div class="flex flex-col gap-3">
 						{#each $selected.courses as course}
-						<CourseCard {course} small={true}/>{/each}
+							<CourseCard {course} small={true} />{/each}
 					</div>
 				{/if}
 				{#if $selected.sections.length > 0}
 					<h1>Sections</h1>
+					<div class="flex flex-col gap-3">
 					{#each $selected.sections as section}
 						<SectionCard {section} small={true} />
-					{/each}
+					{/each}</div>
 				{/if}
 				{#if $selected.courses.length == 0 && $selected.sections.length == 0}
 					<p>No saved courses or sections!</p>
 				{/if}
+				</div>
 			</Sheet.Description>
 		</Sheet.Header>
 	</Sheet.Content>
