@@ -37,6 +37,7 @@ struct Args {
 #[tokio::main]
 pub async fn main() {
     let args = Args::parse();
+    let terms = Vec::from(["2551"]);
     let cache_path = "./cached_catalog/";
     if (args.scrape && args.parse) || (!args.scrape && !args.parse) {
         println!(

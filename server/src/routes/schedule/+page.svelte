@@ -60,12 +60,11 @@
 	</div>
 </div>
 
-<div class=" p-50 relative flex h-fit w-full flex-col items-center justify-center px-8 lg:flex-row">
-	<Tabs.Root
-		bind:value={view}
-		class="flex w-full flex-col-reverse items-center px-4 lg:h-[47.5rem]"
-	>
-		<Tabs.List class="">
+<div
+	class=" p-50 relative flex h-fit w-full flex-col-reverse items-center justify-center gap-4 px-8 lg:flex-row"
+>
+	<Tabs.Root bind:value={view} class="flex h-[47.5rem] w-full flex-col items-center px-4">
+		<Tabs.List>
 			<Tabs.Trigger value="saved">Saved</Tabs.Trigger>
 			<Tabs.Trigger value="generated">Generate</Tabs.Trigger>
 			<Tabs.Trigger value="search">Search</Tabs.Trigger>
@@ -83,47 +82,47 @@
 				</div>
 			{/if}
 		</Tabs.Content>
-		<Tabs.Content value="generated" class="w-full overflow-hidden">
-			<div class="flex w-full flex-col items-center gap-3">
-				{#if !generated}
-					<p>Generate all possible schedules given a combination of courses and sections.</p>
-					<Generator bind:schedules bind:generated />
-				{:else if schedules}
-					<div class="flex flex-row">
-						<Button onclick={() => updateC(null, -1)}><ChevronLeft /></Button>
-						<Button
-							onwheel={(e) => {
-								if (e.deltaY != 0) {
-									updateC(e);
-								}
-							}}>{count + 1}/{schedules.length}</Button
-						>
-						<Button onclick={() => updateC()}><ChevronRight /></Button>
-					</div>
-				{:else}
-					<p>No possible schedules could be generated</p>
-				{/if}
+		<Tabs.Content value="generated" class="h-full w-full overflow-hidden">
+			{#if !generated}
+				<p>Generate all possible schedules given a combination of courses and sections.</p>
+				<Generator bind:schedules bind:generated />
+			{:else if schedules}
+				<div class="flex flex-row items-center justify-center">
+					<Button onclick={() => updateC(null, -1)}><ChevronLeft /></Button>
+					<Button
+						onwheel={(e) => {
+							if (e.deltaY != 0) {
+								updateC(e);
+							}
+						}}>{count + 1}/{schedules.length}</Button
+					>
+					<Button onclick={() => updateC()}><ChevronRight /></Button>
+				</div>
+			{:else}
+				<p>No possible schedules could be generated</p>
+			{/if}
+			<div class="grid grid-cols-3 gap-3">
 				{#if schedules && schedules.length > 0}
 					{#each schedules[count] as section}
 						<SectionCard {section} small={true} />
 					{/each}
 				{/if}
-				{#if generated}
-					<Button
-						onclick={() => {
-							generated = false;
-							schedules = [[]];
-						}}>Change generation options</Button
-					>
-				{/if}
 			</div>
+			{#if generated}
+				<Button
+					onclick={() => {
+						generated = false;
+						schedules = [[]];
+					}}>Change generation options</Button
+				>
+			{/if}
 		</Tabs.Content>
 		<Tabs.Content value="search" class="h-4/6 w-full">
 			<div class=" flex h-full flex-col gap-3">
 				<div class="flex w-full flex-col items-center gap-3">
 					<SearchBar limit={18} limit_start={18} />
 				</div>
-				<div class="grid flex-grow grid-cols-3 gap-2">
+				<div class="grid flex-grow grid-cols-1 gap-2 md:grid-cols-3 lg:grid-cols-3">
 					{#each queryResponse.courses.slice(showPage * 6, showPage * 6 + 6) as course}
 						<CourseCard {course} class="h-[14rem]" />{/each}
 					{#each queryResponse.sections.slice(showPage * 6, showPage * 6 + 6) as section}

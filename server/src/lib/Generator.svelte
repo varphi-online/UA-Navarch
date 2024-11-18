@@ -3,7 +3,10 @@
 	import { Course, Section } from '$lib/query.svelte';
 	const selected: { courses: Course[]; sections: Section[] } = getContext('selected');
 
-    let {schedules = $bindable(), generated=$bindable()}: {schedules: Section[][]; generated: boolean} = $props();
+	let {
+		schedules = $bindable(),
+		generated = $bindable()
+	}: { schedules: Section[][]; generated: boolean } = $props();
 
 	import { Trash, Plus } from 'lucide-svelte';
 
@@ -23,7 +26,7 @@
 		genOpts.courses = [...selected.courses.filter((c) => c.sections_avail)];
 	});
 
-    async function generate() {
+	async function generate() {
 		const resp = await fetch('/api/generate', {
 			method: 'POST',
 			body: JSON.stringify({ sections: genOpts.sections, courses: genOpts.courses }),
@@ -37,62 +40,83 @@
 	}
 </script>
 
-<div class="row flex flex-row items-center gap-6">
-    <div class="flex flex-col justify-center items-center">
-    <p>Generation Options</p>
-	<div class="grid grid-cols-3 grid-rows-4">
-		
-		<h3 class="row-start-1 row-end-1 col-start-1 col-end-1">Sections</h3>
-		<div class="row-start-2 row-end-3 col-start-1 col-end-1">
-			{#each genOpts.sections as section}
-				<button
-					onclick={() => (genOpts.sections = genOpts.sections.filter((s) => s != section))}
-					class=" group h-6 w-fit cursor-pointer rounded-2xl bg-blue-900 p-[1px] px-2 text-xs text-white hover:bg-red-700"
-				>
-					<p class=" visible h-4 w-20 group-hover:hidden">
-						{section.department}
-						{section.course_number}
-						{section.section_number}
-					</p>
-					<Trash class="hidden h-4 w-20 group-hover:inline" />
-				</button>
-			{/each}
-		</div>
-		<h3 class="row-start-1 row-end-1 col-start-2 col-end-2">Courses</h3>
-		<div class="row-start-2 row-end-3 col-start-2 col-end-2">
-			{#each genOpts.courses as course}
-				<button
-					onclick={() => (genOpts.courses = genOpts.courses.filter((c) => c != course))}
-					class=" group h-6 w-fit cursor-pointer rounded-2xl bg-blue-900 p-[1px] px-2 text-xs text-white hover:bg-red-700"
-				>
-					<p class=" visible h-4 w-14 group-hover:hidden">
-						{course.department}
-						{course.course_number}
-					</p>
-					<Trash class="hidden h-4 w-14 group-hover:inline" />
-				</button>
-			{/each}
-		</div>
-		<h3 class="row-start-1 row-end-1 col-start-3 col-end-3">Exclude Instructors</h3>
-        <div class="row-start-2 row-end-2 col-start-3 col-end-3 flex flex-row">
-			<Input bind:value={currentBLInput} type="text"  /><button
-				onclick={() => {
-					genOpts.blacklist.push(currentBLInput);
-					currentBLInput = '';
-				}}><Plus /></button
-			></div>
-			<div class="row-start-3 row-span-2 col-start-3 col-end-3 grid grid-cols-3">
-				{#each genOpts.blacklist as instructor}
-					<button
-						onclick={() => (genOpts.blacklist = genOpts.blacklist.filter((c) => c != instructor))}
-						class=" group h-6 w-fit cursor-pointer rounded-2xl bg-blue-900 p-[1px] px-2 text-xs text-white hover:bg-red-700"
-					>
-						<p class=" visible h-4 w-14 group-hover:hidden">{instructor}</p>
-						<Trash class="hidden h-4 w-14 group-hover:inline" />
-					</button>
-				{/each}
+<div class="row flex h-1/2 flex-row items-center gap-6">
+	<div class="flex h-full flex-col items-center justify-start">
+		<p>Generation Options</p>
+		<div class="flex h-full flex-row rounded-2xl p-1">
+			<div class="flex w-1/3 flex-col gap-2 border-r-2 border-gray-50 px-2">
+				<h3 class="border-b-2 border-gray-100">Sections</h3>
+				<div class="flex flex-row flex-wrap gap-[2px]">
+					{#each genOpts.sections as section}
+						<button
+							onclick={() => (genOpts.sections = genOpts.sections.filter((s) => s != section))}
+							class=" group h-6 w-fit cursor-pointer rounded-2xl bg-blue-900 p-[1px] px-2 text-xs text-white hover:bg-red-700"
+						>
+							<div class="relative flex h-5 w-fit items-center justify-center">
+								<p class="block group-hover:invisible">
+									{section.department}
+									{section.course_number}
+									{section.section_number}
+								</p>
+								<Trash class="absolute hidden h-4 group-hover:block" />
+							</div>
+						</button>
+					{/each}
+				</div>
 			</div>
+			<div class="flex w-1/3 flex-col gap-2 border-r-2 border-gray-50 px-2">
+				<h3 class="border-b-2 border-gray-100">Courses</h3>
+				<div class="flex flex-row flex-wrap gap-[2px]">
+					{#each genOpts.courses as course}
+						<button
+							onclick={() => (genOpts.courses = genOpts.courses.filter((c) => c != course))}
+							class=" group cursor-pointer rounded-2xl bg-blue-900 p-[1px] px-2 text-xs text-white hover:bg-red-700"
+							><div class="relative flex h-5 w-fit items-center justify-center">
+								<p class="block group-hover:invisible">
+									{course.department}
+									{course.course_number}
+								</p>
+								<Trash class="absolute hidden h-4 group-hover:block" />
+							</div>
+						</button>
+					{/each}
+				</div>
+			</div>
+			<div class="flex w-1/3 flex-col gap-2 px-2">
+				<h3 class="border-b-2 border-gray-100">Exclude Instructors</h3>
+				<div class="flex flex-row">
+					<Input
+						bind:value={currentBLInput}
+						type="text"
+						onkeyup={(e) => {
+							if (e.key === 'Enter' && currentBLInput.length > 0) {
+								genOpts.blacklist.push(currentBLInput);
+								currentBLInput = '';
+							}
+						}}
+					/><button
+						onclick={() => {
+							if (currentBLInput.length > 0) {
+								genOpts.blacklist.push(currentBLInput);
+								currentBLInput = '';
+							}
+						}}><Plus /></button
+					>
+				</div>
+				<div class="flex flex-row flex-wrap gap-[2px]">
+					{#each genOpts.blacklist as instructor}
+						<button
+							onclick={() => (genOpts.blacklist = genOpts.blacklist.filter((c) => c != instructor))}
+							class=" group h-6 w-fit cursor-pointer rounded-2xl bg-blue-900 p-[1px] px-2 text-xs text-white hover:bg-red-700"
+							><div class="relative flex h-5 w-fit items-center justify-center">
+								<p class="block w-fit text-nowrap group-hover:invisible">{instructor}</p>
+								<Trash class="absolute hidden h-4 group-hover:block" />
+							</div>
+						</button>
+					{/each}
+				</div>
+			</div>
+		</div>
 	</div>
-</div>
 	<Button onclick={() => generate()}>Generate!</Button>
 </div>
