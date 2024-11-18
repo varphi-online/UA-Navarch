@@ -9,7 +9,7 @@ export const POST = async ({ request }) => {
 		return new Response(JSON.stringify(courses), { status: 201 });
 	} else if (request.headers.get('search-type') === 'section') {
 		const { section, course, limit }: { section: SectionQuery, course: CourseQuery, limit: number } = await request.json();
-		console.log({section,course});
+		//console.log({section,course});
 		const sections: Section[] = search_section(section,course, limit);
 		return new Response(JSON.stringify(sections), { status: 201 });
 	}

@@ -6,11 +6,14 @@ export class CourseQuery {
         public description: string|null = null,
         public attributes: (string|null)[] = null,
         public units: string|null = null,
-        public prerequisites: string|null = null
+        public prerequisites: string|null = null,
+        public term: string|null = null,
+        public showHist: boolean = false,
     ) {}
 }
 
 export class Course {
+    public sections_avail: boolean = false;
     constructor(
         public department: string,
         public course_number: string,
@@ -66,6 +69,7 @@ export class SectionQuery {
 }
 
 export class Section {
+    public visible: boolean = true;
     constructor(
         public class_number: string|null = null,
         public department: string|null = null,

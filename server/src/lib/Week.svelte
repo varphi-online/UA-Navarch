@@ -1,7 +1,6 @@
 <script lang="ts">
-	import { getContext } from 'svelte';
-	import { Course, Section } from './query.svelte';
-	const selected: { courses: Course[]; sections: Section[] } = getContext('selected');
+	import { Section } from './query.svelte';
+	let { sections }: { sections: Section[] } = $props();
 
 	function timeConv(time: string): number {
 		if (time.toLowerCase() == 'tbd') return -1;
@@ -29,9 +28,43 @@
 	}
 </script>
 
-<div class="relative h-1/2 w-1/2">
+<div class="relative aspect-video w-full rounded-3xl border-2 border-gray-400 ml-10">
 	<div
-		class="absolute grid h-full w-full grid-cols-5 [&>*]:border-x-[1px] [&>*]:border-b-[1px] [&>*]:border-solid [&>*]:border-gray-400 [&>*]:bg-transparent"
+		class="absolute grid h-full w-8 -left-10 -top-[6px] grid-cols-1 [&>*]:border-solid [&>*]:border-transparent [&>*]:border"
+		style="grid-template-rows: repeat(17, minmax(0, 2fr));"
+	>
+		<div class="row-start-[1] text-xs">&nbsp;</div>
+		<p class="row-start-2 flex flex-row items-center justify-end overflow-clip text-xs">6:00</p>
+		<div class="row-start-[3] text-xs">&nbsp;</div>
+		<p class="row-start-4 flex flex-row items-center justify-end overflow-clip text-xs">8:00</p>
+		<div class="row-start-[5] text-xs">&nbsp;</div>
+		<p class="row-start-6 flex flex-row items-center justify-end overflow-clip text-xs">10:00</p>
+		<div class="row-start-[7] text-xs">&nbsp;</div>
+		<p class="row-start-8 flex flex-row items-center justify-end overflow-clip text-xs">12:00</p>
+		<div class="row-start-[9] text-xs">&nbsp;</div>
+		<p class="row-start-10 flex flex-row items-center justify-end overflow-clip text-xs">2:00</p>
+		<div class="row-start-[11] text-xs">&nbsp;</div>
+		<p class="row-start-12 flex flex-row items-center justify-end overflow-clip text-xs">4:00</p>
+		<div class="row-start-[13] text-xs">&nbsp;</div>
+		<p class="row-start-[14] flex flex-row items-center justify-end overflow-clip text-xs">6:00</p>
+		<div class="row-start-[15] text-xs">&nbsp;</div>
+		<p class="row-start-[16] flex flex-row items-center justify-end overflow-clip text-xs">8:00</p>
+		<div class="row-start-[17] text-xs">&nbsp;</div>
+		<p class="row-start-[18] flex flex-row items-center justify-end overflow-clip text-xs">10:00</p>
+	</div>
+	<div
+		class="absolute grid h-full w-full grid-cols-5
+
+		
+		[&>*:nth-child(5n)]:border-l
+		[&>*:nth-child(5n-1)]:border-l
+		[&>*:nth-child(5n-2)]:border-l
+		[&>*:nth-child(5n-3)]:border-l
+		[&>*:nth-last-child(-n+5)]:border-b-0
+		[&>*]:border-b
+		[&>*]:border-solid
+		[&>*]:border-gray-400
+		[&>*]:bg-transparent"
 		style="grid-template-rows: repeat(17, minmax(0, 2fr));"
 	>
 		{#each { length: 85 } as _, i}
@@ -39,7 +72,7 @@
 		{/each}
 	</div>
 	<div
-		class=" absolute grid h-full w-full grid-cols-5 justify-center gap-x-[1px]"
+		class=" absolute grid h-full w-full grid-cols-5 justify-center"
 		style="grid-template-rows: repeat(204, minmax(0, 2fr));"
 	>
 		<!--
@@ -47,17 +80,21 @@
         <div class=" col-start-4 row-start-[73] row-end-[107] rounded-lg bg-red-600">&nbsp;</div>
 		<div class="col-start-3 rounded-lg bg-blue-600" style={`grid-row-start: ${timeConv("12:00")};grid-row-end: ${timeConv("13:50")};`}>&nbsp;</div>
 		-->
-		{#each selected.sections as section}
+		{#each sections as section}
 			{@const start = timeConv(section.start_time)}
 			{@const end = timeConv(section.end_time)}
-			{@const color=objectToColor(section)}
+			{@const color = objectToColor(section)}
 			{#each days(section) as day, day_index}
-				{#if day}
+				{#if day && section.visible}
 					<div
-						class="rounded-lg flex justify-center items-center"
+						class="flex items-center justify-center rounded-lg"
 						style={`background-color: ${color};grid-column-start: ${day_index + 1};grid-row-start: ${start};grid-row-end: ${end};`}
 					>
-						<p class="text-sm">{section.department} {section.course_number}</p>
+						<p class="text-sm">
+							{section.department}
+							{section.course_number}
+							{section.section_number}
+						</p>
 					</div>
 				{/if}
 			{/each}

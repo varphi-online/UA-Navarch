@@ -1,36 +1,45 @@
 <script lang="ts">
 	import { fade } from 'svelte/transition';
 	import { Course, Section } from '$lib/query.svelte';
+	import { Trash, Lock, Link, Hammer, BookmarkPlus } from 'lucide-svelte';
+	import { type QueryParams } from './queryStore.svelte';
+	import { type Writable } from 'svelte/store';
 	let {
 		course,
 		small = false,
-		focused = $bindable({course:null,section:null})
+		focused = $bindable({ course: null, section: null }),
+		class: internalClass
 	}: {
 		course: Course;
 		small?: boolean;
 		focused?: { course: Course | null; section: Section | null };
+		class?
 	} = $props();
-	import Lock from 'lucide-svelte/icons/lock';
-	import Link from 'lucide-svelte/icons/link';
-	import Hammer from 'lucide-svelte/icons/hammer';
-	import BookmarkPlus from 'lucide-svelte/icons/bookmark-plus';
 	import * as Tooltip from '$lib/components/ui/tooltip/index.js';
 
 	import { getContext } from 'svelte';
 	const selected: { courses: Course[]; sections: Section[] } = getContext('selected');
+	const queryParams: Writable<QueryParams> = getContext('queryParams');
 	let hovered = $state(false);
 </script>
 
 <div
-	class={`${small ? ' h-min' : 'h-80'} rounded-3xl border-2 border-solid border-gray-300`}
+	class={`${internalClass} ${small ? ' h-min' : 'h-80'} rounded-3xl border-2 border-solid border-gray-300`}
 	role="contentinfo"
-	onmouseenter={() => (hovered = true)}
-	onmouseleave={() => (hovered = false)}
+	onmouseenter={() => {
+		hovered = true;
+	}}
+	onmouseleave={() => {
+		hovered = false;
+	}}
 >
 	<div class="flex h-full flex-col flex-nowrap justify-center p-4">
 		<div>
 			<a href={`/course/${course.department}/${course.course_number}`}>
-				<h3 class="inline w-fit rounded-2xl bg-gray-200 px-2 text-lg font-semibold">
+				<!--bg-grey-200-->
+				<h3
+					class={`inline w-fit rounded-2xl ${course.sections_avail ? 'bg-blue-900' : 'bg-red-900'} px-2 text-lg font-semibold text-white`}
+				>
 					{course.department}
 					{course.course_number}
 				</h3>
@@ -148,12 +157,31 @@
 				</p>
 			</button>
 
-			<div class="flex h-6 flex-row justify-end">
+			<div class="flex h-6 flex-row">
 				{#if (window.matchMedia('(max-width: 600px)').matches || hovered) && !selected.courses.includes(course)}
-					<div transition:fade={{ duration: 300 }}>
+					<p transition:fade={{ duration: 300 }} class=" text-red-900">
+						{#if !course.sections_avail}
+						
+							Not offered: {$queryParams.term}
+						{/if}
+					</p>
+					<div transition:fade={{ duration: 300 }} class="ml-auto">
 						<BookmarkPlus
 							onclick={() => {
 								selected.courses = [...selected.courses, course];
+							}}
+							class="cursor-pointer"
+						/>
+					</div>
+				{/if}
+			</div>
+		{:else}
+			<div class="flex h-6 flex-row justify-end">
+				{#if window.matchMedia('(max-width: 600px)').matches || hovered}
+					<div transition:fade={{ duration: 200 }}>
+						<Trash
+							onclick={() => {
+								selected.courses = selected.courses = selected.courses.filter((c) => c !== course);
 							}}
 							class="cursor-pointer"
 						/>

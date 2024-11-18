@@ -28,21 +28,20 @@ pub fn update_database(letters: &str, cache_path: &str, db_path: &str, thread_co
                     .count();
                 let progress_bar = multi_progress.add(ProgressBar::new(course_count as u64));
                 for course_num in 0..course_count {
-                    progress_bar.set_style(ProgressStyle::with_template("Elapsed: [{elapsed_precise}] | ETA: [{eta_precise}] | {msg}\n{wide_bar} [{pos}/{len}]").unwrap());
+                    progress_bar.set_style(ProgressStyle::with_template("Elapsed: [{elapsed_precise}] | ETA: [{eta_precise}] | {wide_msg}\n{wide_bar} [{pos}/{len}]").unwrap());
                     let mut course: Option<Course> = None;
                     let mut sections: Vec<Option<Section>> = Vec::new();
                     //println!("trying: {}/course_{course_num}", &letter_path);
-                    if let Ok(read_dir) =
-                        std::fs::read_dir(format!("{}/course_{course_num}", &letter_path))
-                    {
+                    let path = format!("{}/course_{course_num}", &letter_path);
+                    if let Ok(read_dir) = std::fs::read_dir(&path) {
                         //println!("\tSubdir: {:?}", read_dir);
                         for item in read_dir {
                             let item = item.unwrap().path();
                             if item.is_file() {
-                                course = parse_course(&item);
+                                course = parse_course(&item, &path);
                             } else if let Ok(sub_dir) = std::fs::read_dir(item) {
                                 for sub_item in sub_dir {
-                                    sections.push(parse_section(&sub_item.unwrap().path()));
+                                    sections.push(parse_section(&sub_item.unwrap().path(), &path));
                                 }
                             }
                         }
@@ -79,7 +78,7 @@ pub fn update_database(letters: &str, cache_path: &str, db_path: &str, thread_co
     }
 }
 
-fn parse_course(path: &std::path::PathBuf) -> Option<Course> {
+fn parse_course(path: &std::path::PathBuf, path_for_hash: &str) -> Option<Course> {
     if let Ok(html) = std::fs::read_to_string(path) {
         let title = find_by_id(&html, "DERIVED_CRSECAT_DESCR200").unwrap_or_else(|| {
             //println!("title parse fail");
@@ -100,7 +99,7 @@ fn parse_course(path: &std::path::PathBuf) -> Option<Course> {
         );
 
         Some(Course {
-            hash: Some(calculate_hash(&format!("{dept}{cn}")) as i64),
+            hash: Some(calculate_hash(&path_for_hash.to_string()) as i64),
             department: Some(dept),
             course_number: Some(cn),
             title: Some(split[3..].join(" ").trim().to_string()),
@@ -140,7 +139,7 @@ fn parse_course(path: &std::path::PathBuf) -> Option<Course> {
     }
 }
 
-fn parse_section(path: &std::path::PathBuf) -> Option<Section> {
+fn parse_section(path: &std::path::PathBuf, path_for_hash: &str) -> Option<Section> {
     if let Ok(html) = std::fs::read_to_string(path) {
         let title = find_by_id(&html, "DERIVED_CLSRCH_DESCR200").unwrap_or_else(|| {
             //println!("title parse fail");
@@ -175,7 +174,7 @@ fn parse_section(path: &std::path::PathBuf) -> Option<Section> {
 
         //println!("{:?}{:?}{:?}{:?}", t_split, e_split, d_split, m_split);
         Some(Section {
-            hash: Some(calculate_hash(&format!("{dept}{cn}")) as i64),
+            hash: Some(calculate_hash(&path_for_hash.to_string()) as i64),
             department: Some(dept),
             course_number: Some(cn),
             class_number: find_by_id(&html, "SSR_CLS_DTL_WRK_CLASS_NBR"),

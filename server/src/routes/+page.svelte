@@ -1,31 +1,40 @@
 <script lang="ts">
 	import { Course, Section } from '$lib/query.svelte';
 	import * as Dialog from '$lib/components/ui/dialog';
-	//let courses: Course[] = $state([]);
-	//let sections: Section[] = $state([]);
 	let focused: { course: Course | null; section: Section | null } = $state({
 		course: null,
 		section: null
 	});
-	let limit: number = $state(15);
+	
+	import type { Writable } from 'svelte/store';
+	import { type QueryParams } from '$lib/queryStore.svelte';
 	import SearchBar from '$lib/SearchBar.svelte';
 	import CourseCard from '$lib/CourseCard.svelte';
 	import Button from '$lib/components/ui/button/button.svelte';
 	import { CalendarFold } from 'lucide-svelte';
 	import SectionCard from '$lib/SectionCard.svelte';
 	import { getContext } from 'svelte';
+	let limit: number = $state(15);
 	function addLimit() {
 		limit += 20;
 	}
 	let dialogOpen = $derived(focused.course != null || focused.section != null);
+	const queryParams: Writable<QueryParams> = getContext('queryParams');
 	const queryResponse: { courses: Course[]; sections: Section[] } = getContext('queryResponse');
 </script>
 
+<svelte:head>
+	<title>Navarch</title>
+	<meta name="description" content="An unofficial, lighter weight, faster, and feature rich course catalog and schedule builder for the University of Arizona.">
+</svelte:head>
+
 <a href="/schedule">
 	<div
-		class=" cursor fixed left-3 top-3 rounded-3xl border-2 border-solid border-slate-500 border-opacity-10 bg-white bg-opacity-75 p-2 transition-all duration-300 hover:border-opacity-100 hover:bg-opacity-100"
+		class=" cursor fixed left-3 top-3 rounded-3xl border-2 border-solid border-slate-500 border-opacity-10 
+		bg-white bg-opacity-75 p-2 transition-all duration-300 hover:border-opacity-100 hover:bg-opacity-100 flex 
+		flex-row gap-2"
 	>
-		<CalendarFold />
+		<CalendarFold /> <p>Schedule Builder</p>
 	</div></a
 >
 <div class="mb-6 mt-16 flex w-full flex-col items-center gap-8">
@@ -36,21 +45,21 @@
 			class="h-16"
 		/><span class="text-5xl font-bold text-[#0C234B]">RCH</span>
 	</div>
-	<SearchBar bind:limit/>
+	<SearchBar bind:limit />
 </div>
 {#if queryResponse.sections.length == 0 && queryResponse.courses.length == 0}
 	<div class="flex w-full justify-center">No results found</div>
 {:else}
-	<div class="grid justify-center gap-6 p-10 sm:grid-cols-1 md:grid-cols-3 lg:grid-cols-5">
+	<div class="grid justify-center gap-6 p-10 sm:grid-cols-1 md:grid-cols-3 lg:grid-cols-5" >
 		{#if queryResponse.courses.length > 0}
 			{#each queryResponse.courses as result}
-				<CourseCard course={result} bind:focused />
+					<CourseCard course={result} bind:focused />
 			{/each}
 			<!--<Button onclick={() => addLimit()}>Try Load More</Button>-->
 		{/if}
 		{#if queryResponse.sections.length > 0}
 			{#each queryResponse.sections as result}
-				<SectionCard section={result}/>
+				<SectionCard section={result} />
 			{/each}
 			<!--<Button onclick={() => addLimit()}>Try Load More</Button>-->
 		{/if}
@@ -58,8 +67,12 @@
 {/if}
 {#if (!(queryResponse.sections.length < 14) && queryResponse.courses.length == 0) || (!(queryResponse.courses.length < 14) && queryResponse.sections.length == 0)}
 	<div class="mb-8 flex w-full flex-col items-center gap-6">
-		{#if queryResponse.sections.length == 0}<p>Showing {queryResponse.courses.length} results</p>{/if}
-		{#if queryResponse.courses.length == 0}<p>Showing {queryResponse.sections.length} results</p>{/if}
+		{#if queryResponse.sections.length == 0}<p>
+				Showing {queryResponse.courses.length} results
+			</p>{/if}
+		{#if queryResponse.courses.length == 0}<p>
+				Showing {queryResponse.sections.length} results
+			</p>{/if}
 		<Button onclick={() => addLimit()}>Try Load More</Button>
 	</div>
 {/if}
@@ -78,7 +91,33 @@
 			{#if course}
 				<Dialog.Title>{@html course.title}</Dialog.Title>
 				<Dialog.Description>
-					<br />{@html course.description}
+					<br />{@html course.description}<br /><br />
+					{#if course.sections_avail}
+					<button
+						onclick={() => {
+							const qp = {
+								desc: null,
+								dept: course.department,
+								num: course.course_number,
+								attrs: [],
+								instructor: null,
+								class_num: null,
+								startTime: '05:00',
+								endTime: '22:00',
+								daysOfWeek: [],
+								filters: [
+									{ value: 'description' },
+									{ value: 'departments' },
+									{ value: 'course_number' },
+									{ value: 'days' },
+									{ value: 'times' }
+								],
+								searchType: { value: 'section', label: 'Sections' }
+							} as QueryParams;
+							$queryParams = qp;
+							focused = { course: null, section: null };
+						}}>Search Available Sections</button
+					>{/if}
 				</Dialog.Description>
 			{:else if section}
 				<Dialog.Title>Are you sure absolutely sure?</Dialog.Title>

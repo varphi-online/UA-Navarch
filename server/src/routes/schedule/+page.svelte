@@ -1,18 +1,180 @@
 <script lang="ts">
-    import type { PageData } from './$types';
-    import Week from '$lib/Week.svelte';
-    import { Search } from 'lucide-svelte';
-    let { data }: { data: PageData } = $props();
-    import { browser } from "$app/environment";
+	import { getContext } from 'svelte';
+	import { Course, Section } from '$lib/query.svelte';
+	import * as Pagination from '$lib/components/ui/pagination';
+	const selected: { courses: Course[]; sections: Section[] } = getContext('selected');
+	const queryResponse: { courses: Course[]; sections: Section[] } = getContext('queryResponse');
+	import Week from '$lib/Week.svelte';
+	import { Button } from '$lib/components/ui/button';
+	import { Search, ChevronRight, ChevronLeft } from 'lucide-svelte';
+	import * as Tabs from '$lib/components/ui/tabs';
+	import SectionCard from '$lib/SectionCard.svelte';
+	import SearchBar from '$lib/SearchBar.svelte';
+	import Generator from '$lib/Generator.svelte';
+	import CourseCard from '$lib/CourseCard.svelte';
+	import { Separator } from '$lib/components/ui/separator';
+
+	let count = $state(0);
+	let view: string = $state('saved');
+	let schedules: Section[][] = $state([[]]);
+	let generated: boolean = $state(false);
+	let sections: Section[] = $state([]);
+	let showPage = $state(0);
+
+	$effect(() => {
+		if (selected.courses.length || selected.sections.length) {
+		}
+		console.log('reset');
+		generated = false;
+		schedules = [[]];
+	});
+
+	//https://stackoverflow.com/questions/4467539/javascript-modulo-gives-a-negative-result-for-negative-numbers
+	function updateC(e?: WheelEvent, delta: number = 1) {
+		const len = schedules.length;
+		if (e) {
+			count = (((count + Math.sign(-e.deltaY)) % len) + len) % len;
+		} else {
+			count = (((count + delta) % len) + len) % len;
+		}
+	}
 </script>
-<a href="/" class="z-10">
+
+<a href="/">
 	<div
-		class=" cursor fixed left-3 top-3 rounded-3xl border-2 border-solid border-slate-500 border-opacity-10 bg-white bg-opacity-75 p-2 transition-all duration-300 hover:border-opacity-100 hover:bg-opacity-100"
+		class=" cursor fixed left-3 top-3 flex flex-row gap-2 rounded-3xl border-2
+    border-solid border-slate-500 border-opacity-10 bg-white bg-opacity-75 p-2 transition-all duration-300
+    hover:border-opacity-100 hover:bg-opacity-100"
 	>
 		<Search />
+		<p>Course Navigator</p>
 	</div></a
 >
-<div class=" relative w-[100vw] h-[100vh] p-50 flex justify-center items-center -z-50">
-    &nbsp;
-    <Week/>
+<div class="mb-6 mt-16 flex w-full flex-col items-center gap-8">
+	<div class="flex flex-row items-center">
+		<span class="text-5xl font-bold text-[#0C234B]">NAV</span><img
+			src="/Arizona_Wildcats_logo.svg"
+			alt="University of Arizona logo"
+			class="h-16"
+		/><span class="text-5xl font-bold text-[#ab0521]">RCH</span>
+	</div>
+</div>
+
+<div class=" p-50 relative flex h-fit w-full flex-col items-center justify-center px-8 lg:flex-row">
+	<Tabs.Root
+		bind:value={view}
+		class="flex w-full flex-col-reverse items-center px-4 lg:h-[47.5rem]"
+	>
+		<Tabs.List class="">
+			<Tabs.Trigger value="saved">Saved</Tabs.Trigger>
+			<Tabs.Trigger value="generated">Generate</Tabs.Trigger>
+			<Tabs.Trigger value="search">Search</Tabs.Trigger>
+		</Tabs.List>
+		<Tabs.Content value="saved" class="h-full">
+			{#if selected.sections.length > 0}
+				<div class="flex flex-col gap-3">
+					{#each selected.sections as section}
+						<SectionCard {section} small={true} />
+					{/each}
+				</div>
+			{:else}
+				<div class="h-full w-full items-center justify-center">
+					<p>No saved items to populate schedule</p>
+				</div>
+			{/if}
+		</Tabs.Content>
+		<Tabs.Content value="generated" class="w-full overflow-hidden">
+			<div class="flex w-full flex-col items-center gap-3">
+				{#if !generated}
+					<p>Generate all possible schedules given a combination of courses and sections.</p>
+					<Generator bind:schedules bind:generated />
+				{:else if schedules}
+					<div class="flex flex-row">
+						<Button onclick={() => updateC(null, -1)}><ChevronLeft /></Button>
+						<Button
+							onwheel={(e) => {
+								if (e.deltaY != 0) {
+									updateC(e);
+								}
+							}}>{count + 1}/{schedules.length}</Button
+						>
+						<Button onclick={() => updateC()}><ChevronRight /></Button>
+					</div>
+				{:else}
+					<p>No possible schedules could be generated</p>
+				{/if}
+				{#if schedules && schedules.length > 0}
+					{#each schedules[count] as section}
+						<SectionCard {section} small={true} />
+					{/each}
+				{/if}
+				{#if generated}
+					<Button
+						onclick={() => {
+							generated = false;
+							schedules = [[]];
+						}}>Change generation options</Button
+					>
+				{/if}
+			</div>
+		</Tabs.Content>
+		<Tabs.Content value="search" class="h-4/6 w-full">
+			<div class=" flex h-full flex-col gap-3">
+				<div class="flex w-full flex-col items-center gap-3">
+					<SearchBar limit={18} limit_start={18} />
+				</div>
+				<div class="grid flex-grow grid-cols-3 gap-2">
+					{#each queryResponse.courses.slice(showPage * 6, showPage * 6 + 6) as course}
+						<CourseCard {course} class="h-[14rem]" />{/each}
+					{#each queryResponse.sections.slice(showPage * 6, showPage * 6 + 6) as section}
+						<SectionCard {section} />{/each}
+				</div>
+				{#if queryResponse.courses.length + queryResponse.sections.length > 6}
+					<Pagination.Root
+						count={queryResponse.courses.length + queryResponse.sections.length}
+						perPage={6}
+						let:pages
+						let:currentPage
+					>
+						<Pagination.Content>
+							<Pagination.Item>
+								<!--<Pagination.PrevButton />-->
+							</Pagination.Item>
+							{#each pages as page (page.key)}
+								{#if page.type === 'ellipsis'}
+									<Pagination.Item>
+										<Pagination.Ellipsis />
+									</Pagination.Item>
+								{:else}
+									<Pagination.Item>
+										<Pagination.Link
+											{page}
+											isActive={currentPage == page.value}
+											onclick={() => {
+												showPage = parseInt(page.value) - 1;
+												console.log(showPage);
+											}}
+										>
+											{page.value}
+										</Pagination.Link>
+									</Pagination.Item>
+								{/if}
+							{/each}
+							<Pagination.Item>
+								<!--<Pagination.NextButton/>-->
+							</Pagination.Item>
+						</Pagination.Content>
+					</Pagination.Root>
+				{/if}
+			</div>
+		</Tabs.Content>
+	</Tabs.Root>
+	<Separator orientation="vertical" />
+	<Week
+		sections={view == 'saved' || view == 'search'
+			? selected.sections
+			: schedules
+				? schedules[count]
+				: []}
+	/>
 </div>
