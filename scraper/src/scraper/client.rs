@@ -38,20 +38,20 @@ impl ScraperClient {
             let mut headers = HeaderMap::new();
             headers.insert(
                 reqwest::header::REFERER, 
-                url.parse().unwrap()
+                url.parse().expect("Somehow, some way, the url failed to parse")
             );
             // Fixed q-values to be positive decimals
             headers.insert(
                 reqwest::header::ACCEPT,
-                "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8".parse().unwrap()
+                "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8".parse().expect("ACCEPT headers failed to parse, somehow")
             );
             headers.insert(
                 reqwest::header::ACCEPT_LANGUAGE,
-                "en-US,en;q=0.5".parse().unwrap()
+                "en-US,en;q=0.5".parse().expect("ACCEPT_LANG headers failed to parse")
             );
             headers.insert(
                 reqwest::header::CONTENT_TYPE,
-                "application/x-www-form-urlencoded".parse().unwrap()
+                "application/x-www-form-urlencoded".parse().expect("CONTENT_TYPE headers failed to parse")
             );
             headers
         })
@@ -105,27 +105,30 @@ impl ScraperClient {
     }
 
     fn update_state(&mut self, html: String) {
-        let state_num_re = Regex::new(r"id='ICStateNum' value='\d+").unwrap();
-        let icsid_re = Regex::new(r"id='ICSID' value='.+'").unwrap();
+        if let Ok(state_num_re) = Regex::new(r"id='ICStateNum' value='\d+"){
+        if let Ok(icsid_re) = Regex::new(r"id='ICSID' value='.+'"){
 
-        self.state_num = state_num_re
-            .find(html.as_str())
-            .unwrap()
-            .as_str()
+        self.state_num = match state_num_re.find(html.as_str()){
+            Some(found)=>{
+            found.as_str().split("value='")
+            .last()
+            .unwrap_or(self.state_num.clone().as_str())
+            .to_string()
+            }
+            None => self.state_num.clone(),
+        };
+
+        self.icsid = match icsid_re.find(html.as_str()){
+            Some(found)=>{found.as_str()
             .split("value='")
             .last()
-            .unwrap()
-            .to_string();
-
-        self.icsid = icsid_re
-            .find(html.as_str())
-            .unwrap()
-            .as_str()
-            .split("value='")
-            .last()
-            .unwrap()
+            .unwrap_or(self.icsid.clone().as_str())
             .trim_matches('\'')
-            .to_string();
+            .to_string()
+            },
+            None => self.icsid.clone(),
+        };
+
 
         #[cfg(debug_assertions)]
         OpenOptions::new()
@@ -140,6 +143,7 @@ impl ScraperClient {
                 .as_bytes(),
             )
             .unwrap();
+        }}
     }
 
     pub async fn initialize_session(&mut self) {
@@ -246,7 +250,7 @@ impl ScraperClient {
             .await
     }
 
-    pub async fn extract_class_details(&mut self, course_id: &str, root: String,letter: &char) -> bool {
+    pub async fn extract_class_details(&mut self, course_id: &str, root: String,letter: &char,terms: &Arc<Vec<String>>) -> bool {
         //println!("Extracting details for course {}", course_id);
 
         // Go to each class
@@ -258,47 +262,50 @@ impl ScraperClient {
         };
 
         if html.contains("Select Course Offering"){
-            write(format!("{}/course_info.html", &root), "SELECT COURSE OFFERING").unwrap();
+            write(format!("{}/course_info.html", &root), "SELECT COURSE OFFERING").expect("a course info failed to write after being given two classes in one");
             self.post_with_action("DERIVED_SSS_SEL_RETURN_PB",None)
             .await;
             return false;
             
         }
 
-        write(format!("{}/course_info.html", &root), html).unwrap();
+        write(format!("{}/course_info.html", &root), html).expect("a course info failed to write");
 
         //Open class sections
         self.post_with_action("DERIVED_SAA_CRS_SSR_PB_GO", None)
             .await;
 
+        // Iterate through terms array
+        for term in terms.iter(){
+       
         //Select spring 2025 class section
-        let html = self
-            .post_with_action("DERIVED_SAA_CRS_SSR_PB_GO$3$", Some("2251".to_string()))
-            .await;
+            let html = self
+                .post_with_action("DERIVED_SAA_CRS_SSR_PB_GO$3$", Some(term.clone()))
+                .await;
 
-         if html.contains("Data Integrity Error"){
-            return true;
-        };
-
-        if let Some(sections) = get_highest_class_section(&html) {
-            create_dir_all(format!("{}/sections/", &root)).unwrap();
-            for section in 0..sections + 1 {
-                tokio::time::sleep(Duration::from_millis(350)).await;
-                let html = self
-                    .post_with_action(
-                        &format!("CLASS_SECTION${section}"),
-                        Some("2251".to_string()),
-                    )
-                    .await;
-                if html.contains("Data Integrity Error"){
-                    return true;
-                };
-                write(format!("{}/sections/section_{section}.html", &root), html).unwrap();
-                self.post_with_action("CLASS_SRCH_WRK2_SSR_PB_CLOSE", None)
-                    .await;
+             if html.contains("Data Integrity Error"){
+                return true;
+            } else if  html.contains("Invalid Value")||html.contains("not offered in your"){ // Skip if invalid
+                    continue;
+            } else if let Some(sections) = get_highest_class_section(&html) {
+                create_dir_all(format!("{}/sections/", &root)).unwrap_or(());
+                for section in 0..sections + 1 {
+                    tokio::time::sleep(Duration::from_millis(350)).await;
+                    let html = self
+                        .post_with_action(
+                            &format!("CLASS_SECTION${section}"),
+                            Some(term.clone()),
+                        )
+                        .await;
+                    if html.contains("Data Integrity Error"){
+                        return true;
+                    };
+                    write(format!("{}/sections/term_{term}_section_{section}.html", &root), html).unwrap_or_else(|_|{println!("Section failed to write, maybe parend dir had a failure too?")});
+                    self.post_with_action("CLASS_SRCH_WRK2_SSR_PB_CLOSE", None)
+                        .await;
+                }
             }
         }
-
         //println!("CRSE_TITLE${}", course_id);
         /*
                 let soup = Soup::new(&html);
@@ -398,13 +405,13 @@ impl ScraperClient {
 }
 
 fn get_highest_class_section(text: &str) -> Option<u32> {
-    let re = Regex::new(r"CLASS_SECTION\$\d+").unwrap();
-
-    Some((re.find_iter(text).count()/4) as u32)
-        /*
-        .filter_map(|m| m.as_str().split('$').last()?.parse::<u32>().ok())
+    if let Ok(re) = Regex::new(r"CLASS_SECTION\$\d+"){
+    //Some((re.find_iter(text).count()/4) as u32)
+        
+        return re.find_iter(text).filter_map(|m| m.as_str().split('$').last()?.parse::<u32>().ok())
         .max()
-*/
+    } None
+
 /*
     Some((re.find_iter(text).count()/4) as u32)
         /*.filter_map(|m| m.as_str().split('$').last()?.parse::<u32>().ok())

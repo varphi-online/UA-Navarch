@@ -231,8 +231,8 @@ export function search_section(
 	}
 
 	if (course_query.term) {
-		query += ` AND sections.term = ?`;
-		params.push(`%${course_query.term}%`);
+		query += ` AND LOWER(sections.term) LIKE ?`;
+		params.push(`%${course_query.term.toLowerCase()}%`);
 	}
 
 	// Add ordering similar to course search when description is provided

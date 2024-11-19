@@ -29,6 +29,7 @@ impl CatalogScraper {
         letters: &str,
         start_idx: Option<String>,
         thread_count: usize,
+        terms: Vec<String>,
     ) -> Result<()> {
         // Create cache directory
         if let Err(e) = create_dir(&self.cache_path) {
@@ -41,6 +42,7 @@ impl CatalogScraper {
         let first_iter = Arc::new(AtomicBool::new(true));
         let multi_progress = Arc::new(MultiProgress::new());
         let unique = Arc::new(AtomicU64::new(0));
+        let terms = Arc::new(terms);
 
         // Process letters in chunks
         for chunk in letters.chunks(thread_count) {
@@ -53,6 +55,7 @@ impl CatalogScraper {
                 let first_iter = Arc::clone(&first_iter);
                 let multi_progress = Arc::clone(&multi_progress);
                 let unique = Arc::clone(&unique);
+                let terms = Arc::clone(&terms);
 
                 let handle = tokio::spawn(async move {
                     let start: usize = if first_iter
@@ -85,7 +88,7 @@ impl CatalogScraper {
                     spinner.set_style(
                         ProgressStyle::default_spinner()
                             .template("{spinner:.green} {msg}")
-                            .unwrap(),
+                            .unwrap_or(ProgressStyle::default_spinner()),
                     );
 
                     spinner.set_message(format!("Fetching courses under \"{}\"", letter));
@@ -95,7 +98,7 @@ impl CatalogScraper {
                     spinner.finish_and_clear();
 
                     let course_ids =
-                        get_highest_course_number(expand_text.as_str()).unwrap() as usize;
+                        get_highest_course_number(expand_text.as_str()).unwrap_or(0) as usize;
 
                     let progress_bar = multi_progress.add(ProgressBar::new(std::cmp::min(
                         (course_ids - start) as u64,
@@ -105,14 +108,15 @@ impl CatalogScraper {
                     ProgressStyle::with_template(
                         "Elapsed: [{elapsed_precise}] | ETA: [{eta_precise}] | {msg}\n{wide_bar} [{pos}/{len}]",
                     )
-                    .unwrap()
+                    .unwrap_or(ProgressStyle::default_bar())
                 );
                     let mut current_id: usize = start;
 
                     while current_id < course_ids {
                         progress_bar.set_message(format!("Processing letter: {}", letter));
                         tokio::time::sleep(Duration::from_millis(500)).await;
-                        create_dir_all(format!("{}/course_{current_id}/", &letter_path)).unwrap();
+                        create_dir_all(format!("{}/course_{current_id}/", &letter_path))
+                            .unwrap_or(());
 
                         let mut retry_count = 0;
                         const MAX_RETRIES: u32 = 3;
@@ -123,6 +127,7 @@ impl CatalogScraper {
                                     current_id.to_string().as_str(),
                                     format!("{}/course_{current_id}/", &letter_path),
                                     &letter,
+                                    &terms,
                                 )
                                 .await;
 
@@ -185,9 +190,11 @@ impl CatalogScraper {
 }
 
 fn get_highest_course_number(text: &str) -> Option<u32> {
-    let re = Regex::new(r"CRSE_TITLE\$\d+").unwrap();
-
-    re.find_iter(text)
-        .filter_map(|m| m.as_str().split('$').last()?.parse::<u32>().ok())
-        .max()
+    if let Ok(re) = Regex::new(r"CRSE_TITLE\$\d+") {
+        return re
+            .find_iter(text)
+            .filter_map(|m| m.as_str().split('$').last()?.parse::<u32>().ok())
+            .max();
+    }
+    None
 }

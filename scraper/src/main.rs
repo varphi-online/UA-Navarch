@@ -37,7 +37,8 @@ struct Args {
 #[tokio::main]
 pub async fn main() {
     let args = Args::parse();
-    let terms = Vec::from(["2551"]);
+    let terms: Vec<String> =
+        Vec::from(["2251".to_string(), "2252".to_string(), "2254".to_string()]);
     let cache_path = "./cached_catalog/";
     if (args.scrape && args.parse) || (!args.scrape && !args.parse) {
         println!(
@@ -46,7 +47,7 @@ pub async fn main() {
         );
         let scraper = CatalogScraper::new(/*"catalog.db",*/ cache_path);
         scraper
-            .rip_html(&args.letters, Some(args.jump.to_string()), 22)
+            .rip_html(&args.letters, Some(args.jump.to_string()), 22, terms)
             .await
             .unwrap();
         update_database(&args.letters, cache_path, "catalog.db", 22);
@@ -55,7 +56,7 @@ pub async fn main() {
             println!("Starting catalog scraping with letters: {}", args.letters);
             let scraper = CatalogScraper::new(/*"catalog.db",*/ cache_path);
             scraper
-                .rip_html(&args.letters, Some(args.jump.to_string()), 22)
+                .rip_html(&args.letters, Some(args.jump.to_string()), 22, terms)
                 .await
                 .unwrap();
         }

@@ -34,7 +34,7 @@
 			activeFilters.includes('attributes') ? $queryParams.attrs.map((filter) => filter.value) : [],
 			null,
 			null,
-			activeFilters.includes('term') ? $queryParams.term : null,
+			/*activeFilters.includes('term') ?*/ $queryParams.term /*: null*/,
 			activeFilters.includes('showHist') ? true : false
 		)
 	);
@@ -109,7 +109,8 @@
 			$queryParams.attrs.length > 0 ||
 			$queryParams.daysOfWeek.length > 0 ||
 			($queryParams.instructor && $queryParams.instructor.length > 0) ||
-			($queryParams.class_num && $queryParams.class_num.length > 0)
+			($queryParams.class_num && $queryParams.class_num.length > 0)||
+			(activeFilters.includes("term"))
 		) {
 			if (currentController) currentController.abort();
 			let debounce_time = 300;
@@ -286,6 +287,8 @@
 					</Select.Trigger>
 					<Select.Content>
 						<Select.Item value="Spring 2025">Spring 2025</Select.Item>
+						<Select.Item value="Summer 2025">Summer 2025</Select.Item>
+						<Select.Item value="Fall 2025">Fall 2025</Select.Item>
 					</Select.Content>
 				</Select.Root>
 			</div>
