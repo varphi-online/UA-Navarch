@@ -109,8 +109,8 @@
 			$queryParams.attrs.length > 0 ||
 			$queryParams.daysOfWeek.length > 0 ||
 			($queryParams.instructor && $queryParams.instructor.length > 0) ||
-			($queryParams.class_num && $queryParams.class_num.length > 0)||
-			(activeFilters.includes("term"))
+			($queryParams.class_num && $queryParams.class_num.length > 0)/*||
+			(activeFilters.includes("term"))*/
 		) {
 			if (currentController) currentController.abort();
 			let debounce_time = 300;

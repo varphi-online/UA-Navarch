@@ -5,8 +5,9 @@
 
 	let {
 		schedules = $bindable(),
-		generated = $bindable()
-	}: { schedules: Section[][]; generated: boolean } = $props();
+		generated = $bindable(),
+		term,
+	}: { schedules: Section[][]; generated: boolean; term: string } = $props();
 
 	import { Trash, Plus } from 'lucide-svelte';
 
@@ -29,7 +30,7 @@
 	async function generate() {
 		const resp = await fetch('/api/generate', {
 			method: 'POST',
-			body: JSON.stringify({ sections: genOpts.sections, courses: genOpts.courses }),
+			body: JSON.stringify({ sections: genOpts.sections, courses: genOpts.courses, term }),
 			headers: {
 				'content-type': 'application/json'
 			}
@@ -50,9 +51,9 @@
 					{#each genOpts.sections as section}
 						<button
 							onclick={() => (genOpts.sections = genOpts.sections.filter((s) => s != section))}
-							class=" group h-6 w-fit cursor-pointer rounded-2xl bg-blue-900 p-[1px] px-2 text-xs text-white hover:bg-red-700"
+							class=" group  min-h-6 max-h-fit w-fit cursor-pointer rounded-2xl bg-blue-900 p-[1px] px-2 text-xs text-white hover:bg-red-700"
 						>
-							<div class="relative flex h-5 w-fit items-center justify-center">
+							<div class="relative flex h-full w-fit items-center justify-center">
 								<p class="block group-hover:invisible">
 									{section.department}
 									{section.course_number}
@@ -70,8 +71,8 @@
 					{#each genOpts.courses as course}
 						<button
 							onclick={() => (genOpts.courses = genOpts.courses.filter((c) => c != course))}
-							class=" group cursor-pointer rounded-2xl bg-blue-900 p-[1px] px-2 text-xs text-white hover:bg-red-700"
-							><div class="relative flex h-5 w-fit items-center justify-center">
+							class=" group min-h-6 max-h-fit cursor-pointer rounded-2xl bg-blue-900 p-[1px] px-2 text-xs text-white hover:bg-red-700"
+							><div class="relative flex h-full w-fit items-center justify-center">
 								<p class="block group-hover:invisible">
 									{course.department}
 									{course.course_number}

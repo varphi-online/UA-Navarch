@@ -2,8 +2,9 @@
 	import { getContext } from 'svelte';
 	import { Course, Section } from '$lib/query.svelte';
 	import * as Pagination from '$lib/components/ui/pagination';
-	const selected: { courses: Course[]; sections: Section[] } = getContext('selected');
-	const queryResponse: { courses: Course[]; sections: Section[] } = getContext('queryResponse');
+	import type { Writable } from 'svelte/store';
+	import { type QueryParams } from '$lib/queryStore.svelte';
+	
 	import Week from '$lib/Week.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Search, ChevronRight, ChevronLeft } from 'lucide-svelte';
@@ -13,6 +14,10 @@
 	import Generator from '$lib/Generator.svelte';
 	import CourseCard from '$lib/CourseCard.svelte';
 	import { Separator } from '$lib/components/ui/separator';
+
+	const selected: { courses: Course[]; sections: Section[] } = getContext('selected');
+	const queryResponse: { courses: Course[]; sections: Section[] } = getContext('queryResponse');
+	const queryParams: Writable<QueryParams> = getContext('queryParams');
 
 	let count = $state(0);
 	let view: string = $state('saved');
@@ -30,7 +35,7 @@
 	});
 
 	//https://stackoverflow.com/questions/4467539/javascript-modulo-gives-a-negative-result-for-negative-numbers
-	function updateC(e?: WheelEvent, delta: number = 1) {
+	function updateCountWithModulus(e?: WheelEvent, delta: number = 1) {
 		const len = schedules.length;
 		if (e) {
 			count = (((count + Math.sign(-e.deltaY)) % len) + len) % len;
@@ -39,26 +44,6 @@
 		}
 	}
 </script>
-
-<a href="/">
-	<div
-		class=" cursor fixed left-3 top-3 flex flex-row gap-2 rounded-3xl border-2
-    border-solid border-slate-500 border-opacity-10 bg-white bg-opacity-75 p-2 transition-all duration-300
-    hover:border-opacity-100 hover:bg-opacity-100"
-	>
-		<Search />
-		<p>Course Navigator</p>
-	</div></a
->
-<div class="mb-6 mt-16 flex w-full flex-col items-center gap-8">
-	<div class="flex flex-row items-center">
-		<span class="text-5xl font-bold text-[#0C234B]">NAV</span><img
-			src="/Arizona_Wildcats_logo.svg"
-			alt="University of Arizona logo"
-			class="h-16"
-		/><span class="text-5xl font-bold text-[#ab0521]">RCH</span>
-	</div>
-</div>
 
 <div
 	class=" p-50 relative flex h-fit w-full flex-col-reverse items-center justify-center gap-4 px-8 lg:flex-row"
@@ -85,23 +70,23 @@
 		<Tabs.Content value="generated" class="h-full w-full overflow-hidden">
 			{#if !generated}
 				<p>Generate all possible schedules given a combination of courses and sections.</p>
-				<Generator bind:schedules bind:generated />
+				<Generator bind:schedules bind:generated term={$queryParams.term} />
 			{:else if schedules}
 				<div class="flex flex-row items-center justify-center">
-					<Button onclick={() => updateC(null, -1)}><ChevronLeft /></Button>
+					<Button onclick={() => updateCountWithModulus(null, -1)}><ChevronLeft /></Button>
 					<Button
 						onwheel={(e) => {
 							if (e.deltaY != 0) {
-								updateC(e);
+								updateCountWithModulus(e);
 							}
 						}}>{count + 1}/{schedules.length}</Button
 					>
-					<Button onclick={() => updateC()}><ChevronRight /></Button>
+					<Button onclick={() => updateCountWithModulus()}><ChevronRight /></Button>
 				</div>
 			{:else}
 				<p>No possible schedules could be generated</p>
 			{/if}
-			<div class="grid grid-cols-3 gap-3">
+			<div class="grid grid-cols-1 lg:grid-cols-3 gap-3">
 				{#if schedules && schedules.length > 0}
 					{#each schedules[count] as section}
 						<SectionCard {section} small={true} />

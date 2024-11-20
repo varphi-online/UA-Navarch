@@ -35,7 +35,7 @@
 >
 	<div class="flex h-full flex-col flex-nowrap justify-center p-4">
 		<div>
-			<a href={`/course/${course.department}/${course.course_number}`}>
+			<a data-sveltekit-reload href={`/course/${course.department}/${course.course_number}`}>
 				<!--bg-grey-200-->
 				<h3
 					class={`inline w-fit rounded-2xl ${course.sections_avail ? 'bg-blue-900' : 'bg-red-900'} px-2 text-lg font-semibold text-white`}

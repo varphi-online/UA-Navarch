@@ -37,16 +37,9 @@
 		<CalendarFold /> <p>Schedule Builder</p>
 	</div></a
 >
-<div class="mb-6 mt-16 flex w-full flex-col items-center gap-8">
-	<div class="flex flex-row items-center">
-		<span class="text-5xl font-bold text-[#AB0520]">NAV</span><img
-			src="/Arizona_Wildcats_logo.svg"
-			alt="University of Arizona logo"
-			class="h-16"
-		/><span class="text-5xl font-bold text-[#0C234B]">RCH</span>
-	</div>
-	<SearchBar bind:limit />
-</div>
+
+<div class="mb-6 mt-8 flex w-full flex-col items-center gap-8">
+<SearchBar bind:limit /></div>
 {#if queryResponse.sections.length == 0 && queryResponse.courses.length == 0}
 	<div class="flex w-full justify-center">No results found</div>
 {:else}
@@ -105,12 +98,14 @@
 								startTime: '05:00',
 								endTime: '22:00',
 								daysOfWeek: [],
+								term: $queryParams.term,
 								filters: [
 									{ value: 'description' },
 									{ value: 'departments' },
 									{ value: 'course_number' },
 									{ value: 'days' },
-									{ value: 'times' }
+									{ value: 'times' },
+									{ value: 'term' },
 								],
 								searchType: { value: 'section', label: 'Sections' }
 							} as QueryParams;

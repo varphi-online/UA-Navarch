@@ -27,7 +27,8 @@
 			{ value: 'departments' },
 			{ value: 'course_number' },
 			{ value: 'days' },
-			{ value: 'times' }
+			{ value: 'times' },
+			{ value: 'term' }
 		],
 		searchType: { value: 'course', label: 'Courses' },
 		term: 'Spring 2025',
@@ -63,6 +64,16 @@
 	setContext('queryParams', queryParams);
 	setContext('queryResponse', queryResponse);
 </script>
+
+
+	<div class="flex flex-row justify-center"><a href="/" class="mb-6 mt-16 flex flex-row items-center">
+		<span class="text-5xl font-bold text-[#AB0520]">NAV</span><img
+			src="/Arizona_Wildcats_logo.svg"
+			alt="University of Arizona logo"
+			class="h-16"
+		/><span class="text-5xl font-bold text-[#0C234B]">RCH</span></a>
+	</div>
+
 
 <Sheet.Root>
 	{#if selected.courses.length != 0 || selected.sections.length != 0}

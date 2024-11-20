@@ -65,6 +65,7 @@ export class SectionQuery {
         public startTime: string|null = null,
         public endTime: string|null = null,
         public class_number: string|null = null,
+        public section_number: string|null = null,
     ) {}
 }
 

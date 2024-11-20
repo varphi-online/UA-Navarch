@@ -6,6 +6,7 @@
 	import { getContext } from 'svelte';
 	const selected: { courses: Course[]; sections: Section[] } = getContext('selected');
 	let hovered = $state(false);
+	import * as Tooltip from '$lib/components/ui/tooltip'
 </script>
 
 <div
@@ -16,7 +17,7 @@
 >
 	<div class="flex h-full flex-col flex-nowrap justify-center p-4">
 		<div>
-			<a href={`/course/${section.department}/${section.course_number}`}>
+			<a data-sveltekit-reload href={`/course/${section.department}/${section.course_number}/${section.term.replace(" ","-")}/${section.section_number}`}>
 				<h3 class="inline w-fit rounded-2xl bg-red-900 text-white px-2 text-lg font-semibold">
 					{section.department}
 					{section.course_number}
@@ -25,6 +26,19 @@
 				<h3 class="inline w-fit rounded-2xl bg-blue-900 text-white px-2 text-lg font-semibold">
 					{section.section_number}	
 				</h3>
+				{#if small}
+					<Tooltip.Root>
+						<Tooltip.Trigger class="rounded-2x float-right ml-[0.25rem] inline w-fit">
+							<h3 class="inline w-fit rounded-2xl bg-gray-300 text-black float-right px-2 text-lg font-semibold">
+								{section.term.split(" ")[0].substring(0,2).toUpperCase()}{section.term.split(" ")[1].substring(2,4)}
+							</h3>
+						</Tooltip.Trigger>
+						<Tooltip.Content>
+							<p>{section.term}</p>
+						</Tooltip.Content>
+					</Tooltip.Root>
+				{/if}
+				
 			</a>
 		</div>
 		<div class="my-2 flex">
@@ -37,7 +51,8 @@
 				{@html section.instructor}<br />
 				{#if section.monday == 'true'}Mo{/if}{#if section.tuesday == 'true'}Tu{/if}{#if section.wednesday == 'true'}We{/if}{#if section.thursday == 'true'}Th{/if}{#if section.friday == 'true'}Fr{/if}<br
 				/>
-				{section.start_time}-{section.end_time}
+				{section.start_time}-{section.end_time}<br/>
+				{section.term}
 				<!--{@html section.description}-->
 			</p>
 			<div class="flex h-6 flex-row justify-end">

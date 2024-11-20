@@ -4,6 +4,7 @@ import { CourseQuery, SectionQuery, Course, Section } from '$lib/query.svelte';
 const db = new Database('static/catalog.db', { readonly: true, safeIntegers: true });
 
 export function search_course(course_query: CourseQuery, limit: number): Course[] {
+	const start = performance.now();
 	let query = `SELECT * FROM courses WHERE 1=1`;
 	const params: string[] = [];
 
@@ -96,33 +97,15 @@ export function search_course(course_query: CourseQuery, limit: number): Course[
 		return course;
 	});
 
-	return courses
-		.filter((course) => (!course_query.showHist && course.sections_avail) || course_query.showHist)
-		.slice(0, limit);
+	const out = courses
+	.filter((course) => (!course_query.showHist && course.sections_avail) || course_query.showHist)
+	.slice(0, limit)
+
+	console.log(performance.now()-start);
+
+	return out;
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	/*
-	const rows: any[] = db.query(query).all(...params);
-    console.log(rows.length)
-    const term_specifier = course_query.term ? "AND term = '" + course_query.term+"'" : '';
-	const section_add = rows.map((row) => {
-		const c = Course.fromRow(row);
-		// Add sections avail attr if section exists in db with same hash, and term
-		const q2 = db
-			.query(
-				`SELECT * FROM sections WHERE hash = ${BigInt(row.hash)} ${term_specifier}`
-			)
-			.all();
-		if (q2.length !== 0) {
-			c.sections_avail = true;
-		}
-		return c;
-	});
-    console.log(section_add.length)
-	//console.log(limit)
-	return section_add
-		.filter((course) => (!course_query.showHist && course.sections_avail) || course_query.showHist)
-		.slice(0, limit);
-        */
+
 }
 
 export function search_section(
@@ -230,6 +213,11 @@ export function search_section(
 		params.push(`%${section_query.class_number}%`);
 	}
 
+	if (section_query.section_number) {
+		query += ` AND sections.section_number LIKE ?`;
+		params.push(`%${section_query.section_number}%`);
+	}
+
 	if (course_query.term) {
 		query += ` AND LOWER(sections.term) LIKE ?`;
 		params.push(`%${course_query.term.toLowerCase()}%`);
@@ -269,13 +257,15 @@ function generateSchedules(required_sections: Section[], required_courses: Cours
 
 export function generateSchedules(
 	required_sections: Section[] = [],
-	required_courses: Course[]
+	required_courses: Course[],
+	term: string
 ): Section[][] {
+	term = term.toLowerCase();
 	// Get all possible sections for each required course
 	const courseSections: Section[][] = required_courses.map((c) =>
 		db
-			.prepare('SELECT * FROM sections WHERE department = ? AND course_number = ?')
-			.all(...[c.department, c.course_number])
+			.prepare('SELECT * FROM sections WHERE department = ? AND course_number = ? AND LOWER(term) LIKE ?')
+			.all(...[c.department, c.course_number,term])
 			.map(Section.fromRow)
 			.filter((section) => section.start_time != 'TBD')
 	);
