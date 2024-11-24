@@ -1,259 +1,253 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Database } from 'bun:sqlite';
 import { CourseQuery, SectionQuery, Course, Section } from '$lib/query.svelte';
 
 const db = new Database('static/catalog.db', { readonly: true, safeIntegers: true });
 
-export function search_course(course_query: CourseQuery, limit: number): Course[] {
-	const start = performance.now();
-	let query = `SELECT * FROM courses WHERE 1=1`;
-	const params: string[] = [];
+export function search_course(course_query: CourseQuery, offset: number = 0, limit: number): Course[] {
+    const params: any[] = [];
+    const conditions: string[] = [];
 
-	if (course_query.department) {
-		const lowerDept = course_query.department.toLowerCase();
-		query += ` AND (
-            CASE 
-                WHEN LOWER(department) = ? THEN 1
-                WHEN LOWER(department) LIKE ? THEN 2
-            END = 1 OR 
-            CASE 
-                WHEN LOWER(department) = ? THEN 1
-                WHEN LOWER(department) LIKE ? THEN 2
-            END = 2
-        )`;
-		params.push(
-			lowerDept, // For exact match
-			`%${lowerDept}%`, // For partial match
-			lowerDept, // Repeated for the second CASE
-			`%${lowerDept}%` // Repeated for the second CASE
-		);
-	}
-	const conditions = course_query.attributes
-		? course_query.attributes.map((attr) => {
-				const mapping = {
-					bc: "building_connections = 'true'",
-					hum: "humanist = 'true'",
-					art: "artist = 'true'",
-					ns: "natural_scientist = 'true'",
-					ss: "social_scientist = 'true'",
-					ec: "entry_course = 'true'",
-					xc: "exit_course = 'true'"
-				};
-				return mapping[attr];
-			})
-		: [];
+    // Build base query with prepared statements
+    if (course_query.department) {
+        const lowerDept = course_query.department.toLowerCase();
+        conditions.push(`(
+            LOWER(department) = ? OR 
+            (LOWER(department) LIKE ? AND LOWER(department) != ?)
+        )`);
+        params.push(lowerDept, `%${lowerDept}%`, lowerDept);
+    }
 
-	if (conditions.length > 0) {
-		query += ` AND (${conditions.join(course_query.attributes.length > 1 ? ' OR ' : ` AND `)})`;
-	}
+    // Map attributes to conditions using a more efficient approach
+    if (course_query.attributes?.length) {
+        const attributeMapping: Record<string, string> = {
+            bc: "building_connections",
+            hum: "humanist",
+            art: "artist",
+            ns: "natural_scientist",
+            ss: "social_scientist",
+            ec: "entry_course",
+            xc: "exit_course"
+        };
+        
+        const attrConditions = course_query.attributes
+            .map(attr => `${attributeMapping[attr]} = 'true'`)
+            .join(course_query.attributes.length > 1 ? ' OR ' : ' AND ');
+        
+        if (attrConditions) {
+            conditions.push(`(${attrConditions})`);
+        }
+    }
 
-	if (course_query.course_number) {
-		query += ` AND course_number LIKE ?`;
-		params.push(`%${course_query.course_number}%`);
-	}
+    if (course_query.course_number) {
+        conditions.push('course_number LIKE ?');
+        params.push(`%${course_query.course_number}%`);
+    }
 
-	if (course_query.description) {
-		const lowerDesc = course_query.description.toLowerCase();
-		query += ` AND (LOWER(description) LIKE ? OR LOWER(title) LIKE ?)`;
-		params.push(`%${lowerDesc}%`, `%${lowerDesc}%`);
-	}
+    if (course_query.description) {
+        const lowerDesc = course_query.description.toLowerCase();
+        conditions.push('(LOWER(description) LIKE ? OR LOWER(title) LIKE ?)');
+        params.push(`%${lowerDesc}%`, `%${lowerDesc}%`);
+    }
 
-	if (course_query.description) {
-		query += ` ORDER BY 
-            CASE 
-                WHEN LOWER(department) = ? THEN 0
-                WHEN LOWER(department) LIKE ? THEN 1
-                ELSE 2
-            END`;
-		params.push(
-			course_query.description.toLowerCase(),
-			`%${course_query.description.toLowerCase()}%`
-		);
-	}
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	const rows: any[] = db.query(query).all(...params);
-	// First, collect all the hashes we need to check
-	const hashes = rows.map((row) => BigInt(row.hash));
+    // Construct the main query with conditions
+    const query = `
+        WITH filtered_courses AS (
+            SELECT * 
+            FROM courses 
+            WHERE ${conditions.length ? conditions.join(' AND ') : '1=1'}
+            ${course_query.description ? `
+                ORDER BY 
+                CASE 
+                    WHEN LOWER(department) = ? THEN 0
+                    WHEN LOWER(department) LIKE ? THEN 1
+                    ELSE 2
+                END
+            ` : ''}
+        ),
+        course_sections AS (
+            SELECT DISTINCT hash
+            FROM sections
+            WHERE hash IN (SELECT hash FROM filtered_courses)
+            ${course_query.term ? "AND term = ?" : ""}
+        )
+        SELECT 
+            c.*,
+            CASE WHEN s.hash IS NOT NULL THEN 1 ELSE 0 END as has_sections
+        FROM filtered_courses c
+        LEFT JOIN course_sections s ON c.hash = s.hash
+        ${!course_query.showHist ? 'WHERE s.hash IS NOT NULL' : ''}
+        LIMIT ? OFFSET ?
+    `;
 
-	// Make a single query to get all relevant sections
-	const term_specifier = course_query.term ? `AND term = '${course_query.term}'` : '';
-	const sectionsQuery = `
-    SELECT DISTINCT hash 
-    FROM sections 
-    WHERE hash IN (${hashes.join(',')}) 
-    ${term_specifier}
-`;
-	const sectionsWithAvailability = new Set(
-		db
-			.query(sectionsQuery)
-			.all()
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-			.map((row: any) => row.hash)
-	);
+    // Add remaining params
+    if (course_query.description) {
+        params.push(
+            course_query.description.toLowerCase(),
+            `%${course_query.description.toLowerCase()}%`
+        );
+    }
+    if (course_query.term) {
+        params.push(course_query.term);
+    }
+    params.push(limit);
+    params.push(offset);
 
-	// Map the courses with sections info
-	const courses = rows.map((row) => {
-		const course = Course.fromRow(row);
-		course.sections_avail = sectionsWithAvailability.has(BigInt(row.hash));
-		return course;
-	});
-
-	const out = courses
-	.filter((course) => (!course_query.showHist && course.sections_avail) || course_query.showHist)
-	.slice(0, limit)
-
-	console.log(performance.now()-start);
-
-	return out;
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-
+    // Execute optimized query
+    const rows = db.query(query).all(...params);
+    
+    // Transform results
+    const courses = rows.map((row: any) => {
+        const course = Course.fromRow(row);
+        course.sections_avail = Boolean(row.has_sections);
+        return course;
+    });
+    return courses;
 }
 
 export function search_section(
-	section_query: SectionQuery,
-	course_query: CourseQuery,
-	limit: number
+    section_query: SectionQuery,
+    course_query: CourseQuery,
+    offset: number = 0,
+    limit: number
 ): Section[] {
-	// Start with a JOIN between sections and courses
-	let query = `
-        SELECT sections.* 
-        FROM sections 
-        JOIN courses ON sections.hash = courses.hash 
-        WHERE 1=1
+    const params: any[] = [];
+    const conditions: string[] = [];
+
+    // Course-related conditions
+    if (course_query.department) {
+        const lowerDept = course_query.department.toLowerCase();
+        conditions.push(`(
+            LOWER(courses.department) = ? OR 
+            (LOWER(courses.department) LIKE ? AND LOWER(courses.department) != ?)
+        )`);
+        params.push(lowerDept, `%${lowerDept}%`, lowerDept);
+    }
+
+    if (course_query.course_number) {
+        conditions.push('courses.course_number LIKE ?');
+        params.push(`%${course_query.course_number}%`);
+    }
+
+    if (course_query.description) {
+        const lowerDesc = course_query.description.toLowerCase();
+        conditions.push('(LOWER(courses.description) LIKE ? OR LOWER(courses.title) LIKE ?)');
+        params.push(`%${lowerDesc}%`, `%${lowerDesc}%`);
+    }
+
+    // Course attributes
+    if (course_query.attributes?.length) {
+        const attributeMapping: Record<string, string> = {
+            bc: "building_connections",
+            hum: "humanist",
+            art: "artist",
+            ns: "natural_scientist",
+            ss: "social_scientist",
+            ec: "entry_course",
+            xc: "exit_course"
+        };
+        
+        const attrConditions = course_query.attributes
+            .map(attr => `courses.${attributeMapping[attr]} = 'true'`)
+            .join(' AND ');
+        
+        if (attrConditions) {
+            conditions.push(`(${attrConditions})`);
+        }
+    }
+
+    // Section-specific conditions
+    if (section_query.instructor) {
+        const lowerInst = section_query.instructor.toLowerCase();
+        conditions.push('LOWER(sections.instructor) LIKE ?');
+        params.push(`%${lowerInst}%`);
+    }
+
+    // Optimize days of week filtering
+    if (section_query.daysOfWeek.length > 0) {
+        const dayMapping = {
+            mo: 'monday',
+            tu: 'tuesday',
+            we: 'wednesday',
+            th: 'thursday',
+            fr: 'friday'
+        };
+        
+        const dayConditions = Object.entries(dayMapping).map(([short, full]) => 
+            `sections.${full} = ${section_query.daysOfWeek.includes(short) ? "'true'" : "'false'"}`
+        );
+        
+        conditions.push(dayConditions.join(' AND '));
+    }
+
+    // Time conditions
+    if (section_query.startTime) {
+        conditions.push('(sections.start_time >= ? OR sections.start_time = \'TBD\')');
+        params.push(section_query.startTime);
+    }
+
+    if (section_query.endTime) {
+        conditions.push('(sections.end_time <= ? OR sections.end_time = \'TBD\')');
+        params.push(section_query.endTime);
+    }
+
+    // Section number conditions
+    if (section_query.class_number) {
+        conditions.push('sections.class_number LIKE ?');
+        params.push(`%${section_query.class_number}%`);
+    }
+
+    if (section_query.section_number) {
+        conditions.push('sections.section_number LIKE ?');
+        params.push(`%${section_query.section_number}%`);
+    }
+
+    // Term condition
+    if (course_query.term) {
+        conditions.push('LOWER(sections.term) LIKE ?');
+        params.push(`%${course_query.term.toLowerCase()}%`);
+    }
+
+    // Construct the optimized query using CTEs
+    const query = `
+        WITH filtered_sections AS (
+            SELECT 
+                sections.*,
+                courses.department,
+                courses.description as course_description,
+                courses.title as course_title
+            FROM sections
+            JOIN courses ON sections.hash = courses.hash
+            WHERE ${conditions.length ? conditions.join(' AND ') : '1=1'}
+            ${course_query.description ? `
+                ORDER BY 
+                CASE 
+                    WHEN LOWER(courses.department) = ? THEN 0
+                    WHEN LOWER(courses.department) LIKE ? THEN 1
+                    ELSE 2
+                END
+            ` : ''}
+            LIMIT ? OFFSET ?
+        )
+        SELECT * FROM filtered_sections
     `;
-	const params: string[] = [];
 
-	// Add course-related filters
-	if (course_query.department) {
-		const lowerDept = course_query.department.toLowerCase();
-		query += ` AND (
-            CASE 
-                WHEN LOWER(courses.department) = ? THEN 1
-                WHEN LOWER(courses.department) LIKE ? THEN 2
-            END = 1 OR 
-            CASE 
-                WHEN LOWER(courses.department) = ? THEN 1
-                WHEN LOWER(courses.department) LIKE ? THEN 2
-            END = 2
-        )`;
-		params.push(
-			lowerDept, // For exact match
-			`%${lowerDept}%`, // For partial match
-			lowerDept, // Repeated for the second CASE
-			`%${lowerDept}%` // Repeated for the second CASE
-		);
-	}
+    // Add ordering params if needed
+    if (course_query.description) {
+        params.push(
+            course_query.description.toLowerCase(),
+            `%${course_query.description.toLowerCase()}%`
+        );
+    }
+    
+    // Add limit
+    params.push(limit);
+    params.push(offset);
 
-	if (course_query.course_number) {
-		query += ` AND courses.course_number LIKE ?`;
-		params.push(`%${course_query.course_number}%`);
-	}
-
-	if (course_query.description) {
-		const lowerDesc = course_query.description.toLowerCase();
-		query += ` AND (LOWER(courses.description) LIKE ? OR LOWER(courses.title) LIKE ?)`;
-		params.push(`%${lowerDesc}%`, `%${lowerDesc}%`);
-	}
-
-	if (section_query.instructor) {
-		const lowerInst = section_query.instructor.toLowerCase();
-		query += ` AND (LOWER(sections.instructor) LIKE ?)`;
-		params.push(`%${lowerInst}%`);
-	}
-
-	// Add course attributes filters
-	if (course_query.attributes.includes('bc')) query += ` AND courses.building_connections = 'true'`;
-	if (course_query.attributes.includes('hum')) query += ` AND courses.humanist = 'true'`;
-	if (course_query.attributes.includes('art')) query += ` AND courses.artist = 'true'`;
-	if (course_query.attributes.includes('ns')) query += ` AND courses.natural_scientist = 'true'`;
-	if (course_query.attributes.includes('ss')) query += ` AND courses.social_scientist = 'true'`;
-	if (course_query.attributes.includes('ec')) query += ` AND courses.entry_course = 'true'`;
-	if (course_query.attributes.includes('xc')) query += ` AND courses.exit_course = 'true'`;
-
-	// Add section-specific filters
-	if (section_query.daysOfWeek.length != 0) {
-		if (section_query.daysOfWeek.includes('mo')) {
-			query += ` AND sections.monday = 'true'`;
-		} else {
-			query += ` AND sections.monday = 'false'`;
-		}
-		if (section_query.daysOfWeek.includes('tu')) {
-			query += ` AND sections.tuesday = 'true'`;
-		} else {
-			query += ` AND sections.tuesday = 'false'`;
-		}
-		if (section_query.daysOfWeek.includes('we')) {
-			query += ` AND sections.wednesday = 'true'`;
-		} else {
-			query += ` AND sections.wednesday = 'false'`;
-		}
-		if (section_query.daysOfWeek.includes('th')) {
-			query += ` AND sections.thursday = 'true'`;
-		} else {
-			query += ` AND sections.thursday = 'false'`;
-		}
-		if (section_query.daysOfWeek.includes('fr')) {
-			query += ` AND sections.friday = 'true'`;
-		} else {
-			query += ` AND sections.friday = 'false'`;
-		}
-	}
-
-	if (section_query.startTime) {
-		query += ` AND (sections.start_time >= ? OR sections.start_time = 'TBD')`;
-		params.push(section_query.startTime);
-	}
-
-	if (section_query.endTime) {
-		query += ` AND (sections.end_time <= ? OR sections.end_time = 'TBD')`;
-		params.push(section_query.endTime);
-	}
-
-	if (section_query.class_number) {
-		query += ` AND sections.class_number LIKE ?`;
-		params.push(`%${section_query.class_number}%`);
-	}
-
-	if (section_query.section_number) {
-		query += ` AND sections.section_number LIKE ?`;
-		params.push(`%${section_query.section_number}%`);
-	}
-
-	if (course_query.term) {
-		query += ` AND LOWER(sections.term) LIKE ?`;
-		params.push(`%${course_query.term.toLowerCase()}%`);
-	}
-
-	// Add ordering similar to course search when description is provided
-	if (course_query.description) {
-		query += ` ORDER BY 
-            CASE 
-                WHEN LOWER(courses.department) = ? THEN 0
-                WHEN LOWER(courses.department) LIKE ? THEN 1
-                ELSE 2
-            END`;
-		params.push(
-			course_query.description.toLowerCase(),
-			`%${course_query.description.toLowerCase()}%`
-		);
-	}
-
-	//query += ` LIMIT ${limit}`;
-	const rows = db.query(query).all(...params);
-	//console.log(query,params)
-	return rows.map((row) => Section.fromRow(row)).slice(0, limit);
+    // Execute query and transform results
+    const rows = db.query(query).all(...params);
+    return rows.map(row => Section.fromRow(row));
 }
-/*
-function generateSchedules(required_sections: Section[], required_courses: Course[]): Section[][] {
-    const possible_sections: Section[][] = [[]];
-    required_courses.forEach((course)=>{
-        const rows = db.query(`SELECT * FROM sections WHERE department = ${course.department} AND course_number = ${course.course_number}`).all();
-        possible_sections.push(rows.map(row => Section.fromRow(row)));
-    });
-
-    const generated_schedules: Section[][] = [[]];
-    possible_sections.forEach()
-}
-*/
 
 export function generateSchedules(
 	required_sections: Section[] = [],

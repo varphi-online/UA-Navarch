@@ -24,7 +24,8 @@
 </script>
 
 <div
-	class={`${internalClass} ${small ? ' h-min' : 'h-80'} rounded-3xl border-2 border-solid border-gray-300`}
+	class={`${internalClass} ${small ? ' h-min' : 'h-80'} rounded-3xl
+	border-2 border-solid border-gray-300`}
 	role="contentinfo"
 	onmouseenter={() => {
 		hovered = true;
@@ -35,7 +36,7 @@
 >
 	<div class="flex h-full flex-col flex-nowrap justify-center p-4">
 		<div>
-			<a data-sveltekit-reload href={`/course/${course.department}/${course.course_number}`}>
+			<a  href={`/course/${course.department}/${course.course_number}`}>
 				<!--bg-grey-200-->
 				<h3
 					class={`inline w-fit rounded-2xl ${course.sections_avail ? 'bg-blue-900' : 'bg-red-900'} px-2 text-lg font-semibold text-white`}
@@ -44,15 +45,15 @@
 					{course.course_number}
 				</h3>
 				{#if course.building_connections == 'true'}
-					<Tooltip.Root>
-						<Tooltip.Trigger class="rounded-2x inline w-fit">
+						<Tooltip.Root>
+							<Tooltip.Trigger class="rounded-2x inline w-fit">
 							<h3 class="inline w-fit rounded-2xl bg-blue-100 px-2 text-lg font-semibold">BC</h3>
-						</Tooltip.Trigger>
-						<Tooltip.Content>
+							</Tooltip.Trigger>
+							<Tooltip.Content>
 							<p>Building Connections</p>
-						</Tooltip.Content>
-					</Tooltip.Root>
-				{/if}
+							</Tooltip.Content>
+						</Tooltip.Root>
+					{/if}
 				{#if course.artist == 'true'}
 					<Tooltip.Root>
 						<Tooltip.Trigger class="rounded-2x inline w-fit ">
@@ -110,15 +111,15 @@
 						</Tooltip.Content>
 					</Tooltip.Root>{/if}
 				{#if course.prerequisites}
-					<Tooltip.Root>
-						<Tooltip.Trigger class="rounded-2x float-right ml-[0.25rem] inline w-fit">
+						<Tooltip.Root>
+							<Tooltip.Trigger class="rounded-2x float-right ml-[0.25rem] inline w-fit">
 							<Hammer />
-						</Tooltip.Trigger>
-						<Tooltip.Content>
+							</Tooltip.Trigger>
+							<Tooltip.Content>
 							<p>Prerequisites Required</p>
-						</Tooltip.Content>
-					</Tooltip.Root>
-				{/if}
+							</Tooltip.Content>
+						</Tooltip.Root>
+					{/if}
 				{#if course.requirements}
 					<Tooltip.Root>
 						<Tooltip.Trigger class="rounded-2x float-right ml-[0.25rem] inline w-fit">
@@ -150,7 +151,7 @@
 				class=" inset-0 line-clamp-4 h-full flex-auto"
 			>
 				<p
-					class="h-full overflow-hidden text-ellipsis whitespace-normal break-words bg-gradient-to-b
+					class="h-full overflow-hiddenw text-ellipsis whitespace-normal break-words bg-gradient-to-b
 			from-black via-black to-transparent to-95% bg-clip-text text-transparent transition-all duration-500 ease-in-out"
 				>
 					{@html course.description}

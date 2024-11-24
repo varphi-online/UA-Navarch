@@ -48,7 +48,7 @@
 <div
 	class=" p-50 relative flex h-fit w-full flex-col-reverse items-center justify-center gap-4 px-8 lg:flex-row"
 >
-	<Tabs.Root bind:value={view} class="flex h-[47.5rem] w-full flex-col items-center px-4">
+	<Tabs.Root bind:value={view} class="flex min-h-[47.5rem] max-h-fit w-full flex-col items-center px-4">
 		<Tabs.List>
 			<Tabs.Trigger value="saved">Saved</Tabs.Trigger>
 			<Tabs.Trigger value="generated">Generate</Tabs.Trigger>

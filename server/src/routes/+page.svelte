@@ -5,7 +5,7 @@
 		course: null,
 		section: null
 	});
-	
+
 	import type { Writable } from 'svelte/store';
 	import { type QueryParams } from '$lib/queryStore.svelte';
 	import SearchBar from '$lib/SearchBar.svelte';
@@ -14,9 +14,9 @@
 	import { CalendarFold } from 'lucide-svelte';
 	import SectionCard from '$lib/SectionCard.svelte';
 	import { getContext } from 'svelte';
-	let limit: number = $state(15);
+	let offset: number = $state(0);
 	function addLimit() {
-		limit += 20;
+		offset += 20;
 	}
 	let dialogOpen = $derived(focused.course != null || focused.section != null);
 	const queryParams: Writable<QueryParams> = getContext('queryParams');
@@ -25,28 +25,33 @@
 
 <svelte:head>
 	<title>Navarch</title>
-	<meta name="description" content="An unofficial, lighter weight, faster, and feature rich course catalog and schedule builder for the University of Arizona.">
+	<meta
+		name="description"
+		content="An unofficial, lighter weight, faster, and feature rich course catalog and schedule builder for the University of Arizona."
+	/>
 </svelte:head>
 
 <a href="/schedule">
 	<div
-		class=" cursor fixed left-3 top-3 rounded-3xl border-2 border-solid border-slate-500 border-opacity-10 
-		bg-white bg-opacity-75 p-2 transition-all duration-300 hover:border-opacity-100 hover:bg-opacity-100 flex 
-		flex-row gap-2"
+		class=" cursor fixed left-3 top-3 flex flex-row gap-2 rounded-3xl border-2
+		border-solid border-slate-500 border-opacity-10 bg-white bg-opacity-75 p-2 transition-all duration-300
+		hover:border-opacity-100 hover:bg-opacity-100"
 	>
-		<CalendarFold /> <p>Schedule Builder</p>
+		<CalendarFold />
+		<p>Schedule Builder</p>
 	</div></a
 >
 
 <div class="mb-6 mt-8 flex w-full flex-col items-center gap-8">
-<SearchBar bind:limit /></div>
+	<SearchBar bind:offset limit={15} />
+</div>
 {#if queryResponse.sections.length == 0 && queryResponse.courses.length == 0}
 	<div class="flex w-full justify-center">No results found</div>
 {:else}
-	<div class="grid justify-center gap-6 p-10 sm:grid-cols-1 md:grid-cols-3 lg:grid-cols-5" >
+	<div class="grid justify-center gap-6 p-10 sm:grid-cols-1 md:grid-cols-3 lg:grid-cols-5">
 		{#if queryResponse.courses.length > 0}
 			{#each queryResponse.courses as result}
-					<CourseCard course={result} bind:focused />
+				<CourseCard course={result} bind:focused />
 			{/each}
 			<!--<Button onclick={() => addLimit()}>Try Load More</Button>-->
 		{/if}
@@ -86,33 +91,33 @@
 				<Dialog.Description>
 					<br />{@html course.description}<br /><br />
 					{#if course.sections_avail}
-					<button
-						onclick={() => {
-							const qp = {
-								desc: null,
-								dept: course.department,
-								num: course.course_number,
-								attrs: [],
-								instructor: null,
-								class_num: null,
-								startTime: '05:00',
-								endTime: '22:00',
-								daysOfWeek: [],
-								term: $queryParams.term,
-								filters: [
-									{ value: 'description' },
-									{ value: 'departments' },
-									{ value: 'course_number' },
-									{ value: 'days' },
-									{ value: 'times' },
-									{ value: 'term' },
-								],
-								searchType: { value: 'section', label: 'Sections' }
-							} as QueryParams;
-							$queryParams = qp;
-							focused = { course: null, section: null };
-						}}>Search Available Sections</button
-					>{/if}
+						<button
+							onclick={() => {
+								const qp = {
+									desc: null,
+									dept: course.department,
+									num: course.course_number,
+									attrs: [],
+									instructor: null,
+									class_num: null,
+									startTime: '05:00',
+									endTime: '22:00',
+									daysOfWeek: [],
+									term: $queryParams.term,
+									filters: [
+										{ value: 'description' },
+										{ value: 'departments' },
+										{ value: 'course_number' },
+										{ value: 'days' },
+										{ value: 'times' },
+										{ value: 'term' }
+									],
+									searchType: { value: 'section', label: 'Sections' }
+								} as QueryParams;
+								$queryParams = qp;
+								focused = { course: null, section: null };
+							}}>Search Available Sections</button
+						>{/if}
 				</Dialog.Description>
 			{:else if section}
 				<Dialog.Title>Are you sure absolutely sure?</Dialog.Title>

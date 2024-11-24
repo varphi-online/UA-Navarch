@@ -9,7 +9,7 @@
 	import { getContext } from 'svelte';
 	import type { QueryParams } from './queryStore.svelte';
 
-	let { limit = $bindable(), limit_start = 15 }: { limit: number; limit_start?: number } = $props();
+	let { offset = $bindable(), limit = 15}: { offset: number; limit?: number} = $props();
 	const queryParams: Writable<QueryParams> = getContext('queryParams');
 	const queryResponse: { courses: Course[]; sections: Section[] } = getContext('queryResponse');
 	let firstLoad = true;
@@ -76,7 +76,7 @@
 
 			const response = await fetch('/api/search', {
 				method: 'POST',
-				body: JSON.stringify({ ...query, limit }),
+				body: JSON.stringify({ ...query, offset: offset, limit: limit }),
 				headers: {
 					'content-type': 'application/json',
 					'search-type': searchType
@@ -115,7 +115,7 @@
 			if (currentController) currentController.abort();
 			let debounce_time = 300;
 			if (
-				limit &&
+				offset &&
 				$queryParams.desc &&
 				$queryParams.desc.length < 6 &&
 				$queryParams.attrs.length == 0
@@ -134,7 +134,7 @@
 					debounce_time
 				).then((result) => {
 					result.forEach((course) => (course.description = highlight(course.description)));
-					queryResponse.courses = result;
+					offset == 0 ? queryResponse.courses = result : queryResponse.courses.push(...result);
 					queryResponse.sections = [];
 				});
 			} else {
@@ -144,7 +144,7 @@
 					'section',
 					debounce_time
 				).then((result) => {
-					queryResponse.sections = result;
+					offset == 0 ?  queryResponse.sections = result: queryResponse.sections.push(...result);
 					queryResponse.courses = [];
 				});
 			}
@@ -164,7 +164,7 @@
 			$queryParams.daysOfWeek ||
 			$queryParams.instructor
 		)
-			limit = limit_start;
+			offset = 0;
 	});
 	$effect(() => {
 		$queryParams.term = termState.value;

@@ -1,6 +1,8 @@
 use clap::Parser;
 use parser::parser::update_database;
 use scraper::scraper::CatalogScraper;
+use std::time::Instant;
+
 /*
 #[derive(Debug, Clone)]
 struct CourseDetails {
@@ -32,18 +34,23 @@ struct Args {
     /// Number of times to greet
     #[arg(short, long, default_value_t = 0)]
     jump: u32,
+
+    #[arg(short, long, default_value_t = ("2251,2252,2254".to_string()))]
+    term: String,
 }
 
 #[tokio::main]
 pub async fn main() {
+    let start_time = Instant::now();
     let args = Args::parse();
-    let terms: Vec<String> =
-        Vec::from(["2251".to_string(), "2252".to_string(), "2254".to_string()]);
+    let terms: Vec<String> = args.term.split(",").map(|s| s.to_string()).collect();
+    /*let terms: Vec<String> =
+    Vec::from(["2251".to_string(), "2252".to_string(), "2254".to_string()]);*/
     let cache_path = "./cached_catalog/";
     if (args.scrape && args.parse) || (!args.scrape && !args.parse) {
         println!(
-            "Starting catalog scraping/parsing with letters: {}",
-            args.letters
+            "Starting catalog scraping/parsing with letters: {}, and terms: {}",
+            args.letters, args.term
         );
         let scraper = CatalogScraper::new(/*"catalog.db",*/ cache_path);
         scraper
@@ -66,5 +73,5 @@ pub async fn main() {
         }
     }
 
-    println!("\nProcessing complete!");
+    println!("\nProcessing complete! Took: {:?}", startTime.elapsed());
 }

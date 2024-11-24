@@ -2,11 +2,23 @@
 	import { fade } from 'svelte/transition';
 	import { Course, Section } from '$lib/query.svelte';
 	let { section, small = false }: { section: Section; small?: boolean } = $props();
-	import { Trash, Eye, EyeOff, BookmarkPlus} from 'lucide-svelte';
+	import {
+		Trash,
+		Eye,
+		EyeOff,
+		BookmarkPlus,
+		UserRound,
+		Clock,
+		LockKeyholeOpen,
+		LockKeyhole,
+		CalendarDays,
+		Hash
+	} from 'lucide-svelte';
 	import { getContext } from 'svelte';
 	const selected: { courses: Course[]; sections: Section[] } = getContext('selected');
 	let hovered = $state(false);
-	import * as Tooltip from '$lib/components/ui/tooltip'
+	import * as Tooltip from '$lib/components/ui/tooltip';
+	const to12Hour = time => time.replace(/(\d{2}):(\d{2})/, (_, h, m) => `${h % 12 || 12}:${m}${h < 12 ? 'AM' : 'PM'}`);
 </script>
 
 <div
@@ -15,48 +27,74 @@
 	onmouseenter={() => (hovered = true)}
 	onmouseleave={() => (hovered = false)}
 >
-	<div class="flex h-full flex-col flex-nowrap justify-center p-4">
-		<div>
-			<a data-sveltekit-reload href={`/course/${section.department}/${section.course_number}/${section.term.replace(" ","-")}/${section.section_number}`}>
-				<h3 class="inline w-fit rounded-2xl bg-red-900 text-white px-2 text-lg font-semibold">
+	<div class="flex h-full flex-col flex-nowrap items-center justify-start p-4">
+		<div class="w-full">
+			<a href={`/course/${section.department}/${section.course_number}`}>
+				<h3 class="inline w-fit rounded-2xl bg-red-900 px-2 text-lg font-semibold text-white">
 					{section.department}
+
 					{section.course_number}
-					
-				</h3>
-				<h3 class="inline w-fit rounded-2xl bg-blue-900 text-white px-2 text-lg font-semibold">
-					{section.section_number}	
-				</h3>
-				{#if small}
-					<Tooltip.Root>
-						<Tooltip.Trigger class="rounded-2x float-right ml-[0.25rem] inline w-fit">
-							<h3 class="inline w-fit rounded-2xl bg-gray-300 text-black float-right px-2 text-lg font-semibold">
-								{section.term.split(" ")[0].substring(0,2).toUpperCase()}{section.term.split(" ")[1].substring(2,4)}
-							</h3>
-						</Tooltip.Trigger>
-						<Tooltip.Content>
-							<p>{section.term}</p>
-						</Tooltip.Content>
-					</Tooltip.Root>
-				{/if}
-				
-			</a>
-		</div>
-		<div class="my-2 flex">
-			<h4 class="text-lg font-semibold"><!--{@html section.title}--></h4>
-		</div>
-		{#if !small}
-			<p
-				class=" inset-0 line-clamp-4 flex-auto overflow-hidden text-ellipsis whitespace-normal break-words bg-gradient-to-b from-black via-black to-transparent to-95% bg-clip-text text-transparent transition-all duration-500 ease-in-out"
+				</h3></a
+			><!-- data-sveltekit-reload -->
+			<a
+				href={`/course/${section.department}/${section.course_number}/${section.term.replace(' ', '-')}/${section.section_number}`}
 			>
-				{@html section.instructor}<br />
-				{#if section.monday == 'true'}Mo{/if}{#if section.tuesday == 'true'}Tu{/if}{#if section.wednesday == 'true'}We{/if}{#if section.thursday == 'true'}Th{/if}{#if section.friday == 'true'}Fr{/if}<br
-				/>
-				{section.start_time}-{section.end_time}<br/>
-				{section.term}
-				<!--{@html section.description}-->
-			</p>
-			<div class="flex h-6 flex-row justify-end">
-				{#if (window.matchMedia('(max-width: 600px)').matches || hovered) && !selected.sections.includes(section)}
+				<h3 class="inline w-fit rounded-2xl bg-blue-900 px-2 text-lg font-semibold text-white">
+					{section.section_number}
+				</h3></a
+			>
+			{#if section.status.toLowerCase().includes('req')}<LockKeyholeOpen
+					color="#ff6e19"
+					class="float-right inline"
+				/>{/if}
+			{#if section.status.toLowerCase() == 'open'}<LockKeyholeOpen
+					color="green"
+					class="float-right inline"
+				/>{/if}
+			{#if section.status.toLowerCase().includes('closed')}<LockKeyhole
+					color="#cc0000"
+					class="float-right inline"
+				/>{/if}
+			{#if small}
+				<Tooltip.Root>
+					<Tooltip.Trigger class="rounded-2x float-right ml-[0.25rem] inline w-fit">
+						<h3
+							class="float-right inline w-fit rounded-2xl bg-gray-300 px-2 text-lg font-semibold text-black"
+						>
+							{section.term.split(' ')[0].substring(0, 2).toUpperCase()}{section.term
+								.split(' ')[1]
+								.substring(2, 4)}
+						</h3>
+					</Tooltip.Trigger>
+					<Tooltip.Content>
+						<p>{section.term}</p>
+					</Tooltip.Content>
+				</Tooltip.Root>
+			{/if}
+			</div>
+		{#if !small}
+			<div class="grid grid-cols-2 gap-1 lg:grid-cols-1 flex-auto w-fit h-fit lg:w-full my-0 lg:my-4 items-center content-center">
+				<div class="flex gap-1"><Hash /> {@html section.class_number}</div>
+				<div class="flex gap-1"><UserRound /> {@html section.instructor}</div>
+				<div class="flex gap-1">
+					<Clock />
+					{#if section.monday == 'true'}Mo{/if}{#if section.tuesday == 'true'}Tu{/if}{#if section.wednesday == 'true'}We{/if}{#if section.thursday == 'true'}Th{/if}{#if section.friday == 'true'}Fr{/if}
+					{to12Hour(section.start_time)} - {to12Hour(section.end_time)}
+				</div>
+				<div class="flex gap-1">
+					<CalendarDays />
+					{@html section.start_date
+						.split('/')
+						.map((v, i) => (i == 2 ? (v = v.substring(2, 4)) : v))
+						.join('/')} - {@html section.end_date
+						.split('/')
+						.map((v, i) => (i == 2 ? (v = v.substring(2, 4)) : v))
+						.join('/')}
+				</div>
+			</div>
+
+			<div class="flex h-6 flex-row justify-end lg:w-full">
+				{#if (window.matchMedia('(max-width: 600px)').matches || hovered) && !selected.sections.some(s=>s.class_number==section.class_number)}
 					<div transition:fade={{ duration: 300 }}>
 						<BookmarkPlus
 							onclick={() => {
@@ -67,35 +105,36 @@
 					</div>
 				{/if}
 			</div>
-			{:else}
-			<div class="flex h-6 flex-row justify-end gap-2">
+		{:else}
+			<div class="flex h-6 flex-row justify-end gap-2 w-full mt-5">
 				{#if window.matchMedia('(max-width: 600px)').matches || hovered}
-				<div transition:fade={{ duration: 200 }} class=" mr-auto">
-					{#if !section.visible}
-					<Eye
-						onclick={() => {
-							section.visible = true;
-						}}
-						class="cursor-pointer"
-					/>
-					{:else}
-					<EyeOff
-						onclick={() => {
-							section.visible = false;
-						}}
-						class="cursor-pointer"
-					/>
-					{/if}
-				</div>
+					<div transition:fade={{ duration: 200 }} class=" mr-auto">
+						{#if !section.visible}
+							<Eye
+								onclick={() => {
+									section.visible = true;
+								}}
+								class="cursor-pointer"
+							/>
+						{:else}
+							<EyeOff
+								onclick={() => {
+									section.visible = false;
+								}}
+								class="cursor-pointer"
+							/>
+						{/if}
+					</div>
 					<div transition:fade={{ duration: 200 }}>
 						<Trash
 							onclick={() => {
-								selected.sections = selected.sections = selected.sections.filter(c => c !== section);
+								selected.sections = selected.sections = selected.sections.filter(
+									(c) => c !== section
+								);
 							}}
 							class="cursor-pointer"
 						/>
 					</div>
-					
 				{/if}
 			</div>
 		{/if}
