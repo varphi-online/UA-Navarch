@@ -24,6 +24,12 @@
 		term = { value: terms[0], label: terms[0] };
 	});
 	const to12Hour = time => time.replace(/(\d{2}):(\d{2})/, (_, h, m) => `${h % 12 || 12}:${m}${h < 12 ? 'AM' : 'PM'}`);
+	
+	import { tick } from 'svelte';
+    
+    function resetScroll(node: HTMLElement) {
+        tick().then((_)=>{node.scrollLeft = node.scrollWidth});
+    }
 </script>
 
 <div class="mb-10 mt-10 flex w-full flex-col items-center gap-20">
@@ -110,7 +116,7 @@
 			</h2>
 		</div>
 		{#if termFiltered[term.value].length > 0}
-			<div class="rotate-180 overflow-x-scroll">
+			<div class="rotate-180 overflow-x-scroll" use:resetScroll>
 				<div class="w-fit rotate-180 mb-1">
 					<Table.Root>
 						<Table.Header class="overflow-visible">

@@ -53,11 +53,17 @@
 		)
 	);
 
-	function highlight(text: string): string {
-		if ($queryParams.desc && $queryParams.desc.length < 4) return text;
-		const regex = new RegExp(`(${$queryParams.desc})`, 'gi');
-		return text.replace(regex, `<mark>$1</mark>`);
-	}
+	function highlight(text: string | null): string {
+    // If text is null or undefined, return an empty string
+    if (text == null) return '';
+    // Check if description is too short
+    if ($queryParams.desc && $queryParams.desc.length < 4) return text;
+    // Escape special regex characters in the description
+    const escapedDesc = $queryParams.desc.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    
+    const regex = new RegExp(`(${escapedDesc})`, 'gi');
+    return text.replace(regex, `<mark>$1</mark>`);
+}
 
 	async function searchWithDebounce<T>(
 		query: Record<string, any>,

@@ -14,3 +14,4 @@ Todo:
 - [x] add user store for selected classes/sections
 - [x] Architect: weekly view on selected sections
 - [x] schedule generator
+- [ ] Instructor exclusion in generation options

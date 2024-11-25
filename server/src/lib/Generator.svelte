@@ -1,18 +1,19 @@
 <script lang="ts">
 	import { getContext } from 'svelte';
 	import { Course, Section } from '$lib/query.svelte';
+	import * as Select from '$lib/components/ui/select';
 	const selected: { courses: Course[]; sections: Section[] } = getContext('selected');
 
 	let {
 		schedules = $bindable(),
 		generated = $bindable(),
-		term,
-	}: { schedules: Section[][]; generated: boolean; term: string } = $props();
+	}: { schedules: Section[][]; generated: boolean;} = $props();
 
 	import { Trash, Plus } from 'lucide-svelte';
 
 	import Input from './components/ui/input/input.svelte';
 	import Button from './components/ui/button/button.svelte';
+	import { browser } from '$app/environment';
 	let genOpts: { courses: Course[]; sections: Section[]; blacklist: string[] } = $state({
 		courses: [],
 		sections: [],
@@ -20,8 +21,18 @@
 	});
 	let currentBLInput = $state('');
 
+	let terms: string[] = ['Spring 2025', 'Summer 2025', 'Fall 2025'];
+	let term = $state({ value: terms[0], label: terms[0] });
+	let termFiltered: { [key: string]: Section[] } = $derived.by(() => {
+		let out = { '': selected.sections };
+		terms.forEach((term) => {
+			out[term] = selected.sections.filter((s) => s.term.includes(term));
+		});
+		return out;
+	});
+
 	$effect(() => {
-		genOpts.sections = [...selected.sections];
+		genOpts.sections = [...termFiltered[term.value]];
 	});
 	$effect(() => {
 		genOpts.courses = [...selected.courses.filter((c) => c.sections_avail)];
@@ -30,7 +41,7 @@
 	async function generate() {
 		const resp = await fetch('/api/generate', {
 			method: 'POST',
-			body: JSON.stringify({ sections: genOpts.sections, courses: genOpts.courses, term }),
+			body: JSON.stringify({ sections: genOpts.sections, courses: genOpts.courses, term: term.value }),
 			headers: {
 				'content-type': 'application/json'
 			}
@@ -41,11 +52,11 @@
 	}
 </script>
 
-<div class="row flex h-1/2 flex-row items-center gap-6">
-	<div class="flex h-full flex-col items-center justify-start">
-		<p>Generation Options</p>
-		<div class="flex h-full flex-row rounded-2xl p-1">
-			<div class="flex w-1/3 flex-col gap-2 border-r-2 border-gray-50 px-2">
+<div class="row flex h-full flex-col lg:flex-row items-center gap-6">
+	<div class="flex h-full flex-col items-center justify-start gap-2">
+		<p>Generation Options {#if browser}({#if window.matchMedia('(max-width: 600px)').matches}Tap{:else}Click{/if} to remove){/if}</p>
+		<div class="flex h-full flex-col lg:flex-row items-center lg:items-start gap-12 lg:gap-0 rounded-2xl p-1 mb-6">
+			<div class="flex w-full lg:w-1/3 lg:h-full flex-col gap-2 border-r-2 border-gray-50 px-2 ">
 				<h3 class="border-b-2 border-gray-100">Sections</h3>
 				<div class="flex flex-row flex-wrap gap-[2px]">
 					{#each genOpts.sections as section}
@@ -65,7 +76,7 @@
 					{/each}
 				</div>
 			</div>
-			<div class="flex w-1/3 flex-col gap-2 border-r-2 border-gray-50 px-2">
+			<div class="flex w-full lg:w-1/3 lg:h-full flex-col gap-2 border-r-2 border-gray-50 px-2">
 				<h3 class="border-b-2 border-gray-100">Courses</h3>
 				<div class="flex flex-row flex-wrap gap-[2px]">
 					{#each genOpts.courses as course}
@@ -83,7 +94,7 @@
 					{/each}
 				</div>
 			</div>
-			<div class="flex w-1/3 flex-col gap-2 px-2">
+			<div class="flex w-full lg:h-full lg:w-1/3 flex-col gap-2 px-2">
 				<h3 class="border-b-2 border-gray-100">Exclude Instructors</h3>
 				<div class="flex flex-row">
 					<Input
@@ -118,6 +129,24 @@
 				</div>
 			</div>
 		</div>
+		<h2 class="flex flex-wrap text-base justify-center mt-auto">
+			Generate with sections and courses from&nbsp;<Select.Root bind:selected={term}>
+			<Select.Trigger
+				class="border-gray-30 m-0 h-full w-fit rounded-lg border border-gray-200 p-0 px-2 text-base font-semibold"
+			>
+				<Select.Value class="overflow-hidden" />
+			</Select.Trigger>
+			<Select.Content>
+				{#each terms as t}
+					<Select.Item value={t} class="flex flex-row justify-start gap-2">
+						<p>{t}</p>
+						<p class="ml-auto text-right text-gray-400">
+							({termFiltered[t].length})
+						</p></Select.Item
+					>
+				{/each}
+			</Select.Content>
+		</Select.Root></h2>
 	</div>
 	<Button onclick={() => generate()}>Generate!</Button>
 </div>
