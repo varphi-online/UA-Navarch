@@ -8,9 +8,9 @@
 Todo:
 
 - [x] Section search
-- [ ] Slug route for each class/section
+- [x] Slug route for each class/section
 - [ ] populate select options with departments
-- [ ] style navigator
-- [ ] add user store for selected classes/sections
-- [ ] Architect: weekly view on selected sections
-- [ ] schedule generator
+- [x] style navigator
+- [x] add user store for selected classes/sections
+- [x] Architect: weekly view on selected sections
+- [x] schedule generator

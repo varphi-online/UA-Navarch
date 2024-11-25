@@ -1,10 +1,11 @@
 <script lang="ts">
 	import '../app.css';
+	import { page } from '$app/stores';  
 	import { setContext } from 'svelte';
 	import { writable, type Writable } from 'svelte/store';
 	import * as Sheet from '$lib/components/ui/sheet';
 	import Button from '$lib/components/ui/button/button.svelte';
-	import Bookmark from 'lucide-svelte/icons/bookmark';
+	import {Bookmark, House} from 'lucide-svelte';
 	import CourseCard from '$lib/CourseCard.svelte';
 	import { Course, Section } from '$lib/query.svelte';
 	import { fade } from 'svelte/transition';
@@ -64,6 +65,17 @@
 	setContext('queryParams', queryParams);
 	setContext('queryResponse', queryResponse);
 </script>
+{#if $page.url.pathname.length>1}
+<a href="/">
+	<div
+		class=" cursor fixed left-3 top-3 flex flex-row gap-2 rounded-3xl border-2
+		border-solid border-slate-500 border-opacity-10 bg-white bg-opacity-75 p-2 transition-all duration-300
+		hover:border-opacity-100 hover:bg-opacity-100"
+	>
+		<House />
+		<p>Home</p>
+	</div></a
+>{/if}
 
 
 	<div class="flex flex-row justify-center"><a href="/" class="mb-6 mt-16 flex flex-row items-center">

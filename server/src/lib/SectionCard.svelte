@@ -22,44 +22,44 @@
 </script>
 
 <div
-	class={`${small ? ' h-min' : 'h-60'} rounded-3xl border-2 border-solid border-gray-300`}
+	class={`${small ? ' h-min' : 'h-60'} w-full rounded-3xl border-2 border-solid border-gray-300`}
 	role="contentinfo"
 	onmouseenter={() => (hovered = true)}
 	onmouseleave={() => (hovered = false)}
 >
-	<div class="flex h-full flex-col flex-nowrap items-center justify-start p-4">
-		<div class="w-full">
-			<a href={`/course/${section.department}/${section.course_number}`}>
+	<div class="flex h-full flex-col flex-nowrap items-center justify-start p-4 w-full">
+		<div class="w-full flex">
+			<a
+				href={`/course/${section.department}/${section.course_number}/${section.term.replace(' ', '-')}/${section.section_number}`}
+			>
 				<h3 class="inline w-fit rounded-2xl bg-red-900 px-2 text-lg font-semibold text-white">
 					{section.department}
 
 					{section.course_number}
-				</h3></a
-			><!-- data-sveltekit-reload -->
-			<a
-				href={`/course/${section.department}/${section.course_number}/${section.term.replace(' ', '-')}/${section.section_number}`}
-			>
+				</h3><!-- data-sveltekit-reload -->
+			
 				<h3 class="inline w-fit rounded-2xl bg-blue-900 px-2 text-lg font-semibold text-white">
 					{section.section_number}
 				</h3></a
 			>
+			{#if !small}
 			{#if section.status.toLowerCase().includes('req')}<LockKeyholeOpen
 					color="#ff6e19"
-					class="float-right inline"
+					class="ml-auto inline"
 				/>{/if}
 			{#if section.status.toLowerCase() == 'open'}<LockKeyholeOpen
 					color="green"
-					class="float-right inline"
+					class="ml-auto inline"
 				/>{/if}
 			{#if section.status.toLowerCase().includes('closed')}<LockKeyhole
 					color="#cc0000"
-					class="float-right inline"
-				/>{/if}
+					class="ml-auto inline"
+				/>{/if}{/if}
 			{#if small}
 				<Tooltip.Root>
-					<Tooltip.Trigger class="rounded-2x float-right ml-[0.25rem] inline w-fit">
+					<Tooltip.Trigger class="rounded-2x ml-auto inline w-fit">
 						<h3
-							class="float-right inline w-fit rounded-2xl bg-gray-300 px-2 text-lg font-semibold text-black"
+							class="inline w-fit rounded-2xl bg-black px-2 font-semibold text-white text-lg"
 						>
 							{section.term.split(' ')[0].substring(0, 2).toUpperCase()}{section.term
 								.split(' ')[1]
@@ -71,6 +71,7 @@
 					</Tooltip.Content>
 				</Tooltip.Root>
 			{/if}
+			
 			</div>
 		{#if !small}
 			<div class="grid grid-cols-2 gap-1 lg:grid-cols-1 flex-auto w-fit h-fit lg:w-full my-0 lg:my-4 items-center content-center">
@@ -125,6 +126,8 @@
 							/>
 						{/if}
 					</div>
+					<div class="flex-auto justify-center flex text-xs items-center" transition:fade={{ duration: 200 }}>{#if section.monday == 'true'}Mo{/if}{#if section.tuesday == 'true'}Tu{/if}{#if section.wednesday == 'true'}We{/if}{#if section.thursday == 'true'}Th{/if}{#if section.friday == 'true'}Fr{/if}
+						{to12Hour(section.start_time)}-{to12Hour(section.end_time)}</div>
 					<div transition:fade={{ duration: 200 }}>
 						<Trash
 							onclick={() => {

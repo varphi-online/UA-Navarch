@@ -56,7 +56,7 @@
 		</Tabs.List>
 		<Tabs.Content value="saved" class="h-full">
 			{#if selected.sections.length > 0}
-				<div class="flex flex-col gap-3">
+				<div class="grid grid-cols-1 lg:grid-cols-3 gap-3">
 					{#each selected.sections as section}
 						<SectionCard {section} small={true} />
 					{/each}
@@ -105,7 +105,7 @@
 		<Tabs.Content value="search" class="h-4/6 w-full">
 			<div class=" flex h-full flex-col gap-3">
 				<div class="flex w-full flex-col items-center gap-3">
-					<SearchBar limit={18} limit_start={18} />
+					<SearchBar limit={18} offset={0} />
 				</div>
 				<div class="grid flex-grow grid-cols-1 gap-2 md:grid-cols-3 lg:grid-cols-3">
 					{#each queryResponse.courses.slice(showPage * 6, showPage * 6 + 6) as course}
@@ -154,7 +154,7 @@
 		</Tabs.Content>
 	</Tabs.Root>
 	<Separator orientation="vertical" />
-	<Week
+	<Week 
 		sections={view == 'saved' || view == 'search'
 			? selected.sections
 			: schedules

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Section } from './query.svelte';
-	let { sections }: { sections: Section[] } = $props();
+	let { sections, class: internalClass }: { sections: Section[]; class? } = $props();
 
 	function timeConv(time: string): number {
 		if (time.toLowerCase() == 'tbd') return -1;
@@ -17,40 +17,40 @@
 		if (section.friday == 'true') out[4] = true;
 		return out;
 	}
-	function objectToColor(obj): string {
-		let hash = JSON.stringify(obj)
+	function objectToColor(obj: any): string {
+		const hash = JSON.stringify(obj)
 			.split('')
-			.reduce((hash, char) => {
-				return char.charCodeAt(0) + ((hash << 5) - hash);
-			}, 0);
+			.reduce((acc, char) => ((acc << 5) - acc + char.charCodeAt(0)) >>> 0, 0);
 
-		return '#' + ('000000' + (Math.abs(hash) & 0xffffff).toString(16)).slice(-6);
+		const bases = [
+			[0x9b, 0x27, 0x27],
+			[0x88, 0x38, 0x47],
+			[0x73, 0x41, 0x60],
+			[0x5e, 0x45, 0x78],
+			[0x46, 0x46, 0x8f],
+			[0x27, 0x44, 0xa5]
+		];
+
+		const base = bases[hash % 6];
+		const lighten = (hash >>> 8) / 0xffffff; // Use next bits for lightness
+		const toHex = (n: number) =>
+			Math.min(255, Math.round(n + ((255 - n) * lighten) / 3))
+				.toString(16)
+				.padStart(2, '0');
+
+		return `#${toHex(base[0])}${toHex(base[1])}${toHex(base[2])}`;
 	}
 </script>
 
-<div class="relative aspect-video w-full rounded-3xl border-2 border-gray-400 ml-10">
+<div class={`${internalClass} relative ml-10 aspect-video w-full rounded-3xl border-2 contain-inline-size border-gray-400`}>
 	<div
-		class="absolute grid h-full w-8 -left-10 -top-[6px] grid-cols-1 [&>*]:border-solid [&>*]:border-transparent [&>*]:border"
-		style="grid-template-rows: repeat(17, minmax(0, 2fr));"
+		class="absolute h-[91%] top-[2%] lg:top-[3.44117%] right-full mr-2 lg:h-[92.917647058%] flex flex-col gap-1"
 	>
-		<div class="row-start-[1] text-xs">&nbsp;</div>
-		<p class="row-start-2 flex flex-row items-center justify-end overflow-clip text-xs">6:00</p>
-		<div class="row-start-[3] text-xs">&nbsp;</div>
-		<p class="row-start-4 flex flex-row items-center justify-end overflow-clip text-xs">8:00</p>
-		<div class="row-start-[5] text-xs">&nbsp;</div>
-		<p class="row-start-6 flex flex-row items-center justify-end overflow-clip text-xs">10:00</p>
-		<div class="row-start-[7] text-xs">&nbsp;</div>
-		<p class="row-start-8 flex flex-row items-center justify-end overflow-clip text-xs">12:00</p>
-		<div class="row-start-[9] text-xs">&nbsp;</div>
-		<p class="row-start-10 flex flex-row items-center justify-end overflow-clip text-xs">2:00</p>
-		<div class="row-start-[11] text-xs">&nbsp;</div>
-		<p class="row-start-12 flex flex-row items-center justify-end overflow-clip text-xs">4:00</p>
-		<div class="row-start-[13] text-xs">&nbsp;</div>
-		<p class="row-start-[14] flex flex-row items-center justify-end overflow-clip text-xs">6:00</p>
-		<div class="row-start-[15] text-xs">&nbsp;</div>
-		<p class="row-start-[16] flex flex-row items-center justify-end overflow-clip text-xs">8:00</p>
-		<div class="row-start-[17] text-xs">&nbsp;</div>
-		<p class="row-start-[18] flex flex-row items-center justify-end overflow-clip text-xs">10:00</p>
+		{#each ['6:00AM', '8:00AM', '10:00AM', '12:00PM', '2:00PM', '4:00PM', '6:00PM', '8:00PM'] as time}
+			<p class="text-right text-[0.65em] h-full p-0">
+				{time}
+			</p>
+		{/each}
 	</div>
 	<div
 		class="absolute grid h-full w-full grid-cols-5
@@ -75,11 +75,6 @@
 		class=" absolute grid h-full w-full grid-cols-5 justify-center"
 		style="grid-template-rows: repeat(204, minmax(0, 2fr));"
 	>
-		<!--
-		<div class="col-start-1 row-start-[37] row-end-[47] rounded-lg bg-red-600">&nbsp;</div> 
-        <div class=" col-start-4 row-start-[73] row-end-[107] rounded-lg bg-red-600">&nbsp;</div>
-		<div class="col-start-3 rounded-lg bg-blue-600" style={`grid-row-start: ${timeConv("12:00")};grid-row-end: ${timeConv("13:50")};`}>&nbsp;</div>
-		-->
 		{#each sections as section}
 			{@const start = timeConv(section.start_time)}
 			{@const end = timeConv(section.end_time)}
@@ -90,7 +85,7 @@
 						class="flex items-center justify-center rounded-lg"
 						style={`background-color: ${color};grid-column-start: ${day_index + 1};grid-row-start: ${start};grid-row-end: ${end};`}
 					>
-						<p class="text-sm">
+						<p class="white text-[2cqw] text-white lg:text-[1cqw]">
 							{section.department}
 							{section.course_number}
 							{section.section_number}

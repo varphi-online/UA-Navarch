@@ -30,9 +30,9 @@
 	<div class="flex w-[75%] flex-col justify-start gap-9 lg:w-fit">
 		<div class="w-full flex items-center">
 			
-				<h1 class="text-wrap text-xl font-semibold inline">
+				<h1 class="text-wrap text-xl font-semibold inline"><a  href={`/course/${course.department}/${course.course_number}`}>
 					{@html course.department}
-					{@html course.course_number} - Section {@html section.section_number} - {@html course.title}
+					{@html course.course_number} - {@html course.title}</a> - Section {@html section.section_number}
 				</h1>
 				{#if !selected.sections.some(s=>s.class_number==section.class_number)}
 				<div transition:fade={{ duration: 300 }} class="ml-auto">

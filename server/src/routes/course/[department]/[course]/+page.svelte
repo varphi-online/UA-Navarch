@@ -1,10 +1,13 @@
 <script lang="ts">
-	import { Circle, X, ExternalLink } from 'lucide-svelte';
+	import { Circle, X, ExternalLink, BookmarkPlus } from 'lucide-svelte';
 	import type { Course, Section } from '$lib/query.svelte';
 	import type { PageData } from './$types';
 	import { Progress } from '$lib/components/ui/progress';
 	import * as Table from '$lib/components/ui/table';
 	import * as Select from '$lib/components/ui/select';
+	import { fade } from 'svelte/transition';
+	import { getContext } from 'svelte';
+	const selected: { courses: Course[]; sections: Section[] } = getContext('selected');
 	let { data }: { data: PageData } = $props();
 	let course: Course = $derived(data.course_data.at(0));
 	let terms: string[] = ['Spring 2025', 'Summer 2025', 'Fall 2025'];
@@ -25,10 +28,23 @@
 
 <div class="mb-10 mt-10 flex w-full flex-col items-center gap-20">
 	<div class="flex w-[75%] flex-col justify-start gap-6 lg:w-fit">
-		<h1 class="text-wrap text-xl font-semibold">
-			{course.department}
-			{course.course_number} - {course.title}
-		</h1>
+		<div class="w-full flex items-center">
+			
+			<h1 class="text-wrap text-xl font-semibold inline">
+				{@html course.department}
+				{@html course.course_number} - {@html course.title}
+			</h1>
+			{#if !selected.courses.some(s=>s.title==course.title)}
+			<div transition:fade={{ duration: 300 }} class="ml-auto">
+				<BookmarkPlus
+					onclick={() => {
+						selected.courses = [...selected.courses, course];
+					}}
+					class="cursor-pointer"
+				/>
+			</div>
+		{/if}
+	</div>
 		<div class="flex flex-col lg:flex-row">
 			<div class="flex flex-grow flex-col lg:max-w-[50ch]">
 				{#each Object.entries( { building_connections: { text: 'Building Connections', color: 'blue' }, artist: { text: 'Gen Ed: Artist', color: 'red' },humanist: { text: 'Gen Ed: Humanist', color: 'green' }, natural_scientist: { text: 'Gen Ed: Natural Scientist', color: 'orange' }, social_scientist: { text: 'Gen Ed: Social Scientist', color: 'purple' }, entry_course: { text: 'Entry Course', color: 'yellow' }, exit_course: { text: 'Exit Course', color: 'yellow' } } ) as [key, { text, color }]}

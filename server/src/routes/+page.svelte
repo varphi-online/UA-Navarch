@@ -11,7 +11,7 @@
 	import SearchBar from '$lib/SearchBar.svelte';
 	import CourseCard from '$lib/CourseCard.svelte';
 	import Button from '$lib/components/ui/button/button.svelte';
-	import { CalendarFold } from 'lucide-svelte';
+	import { CalendarFold, ExternalLink } from 'lucide-svelte';
 	import SectionCard from '$lib/SectionCard.svelte';
 	import { getContext } from 'svelte';
 	let offset: number = $state(0);
@@ -90,8 +90,10 @@
 				<Dialog.Title>{@html course.title}</Dialog.Title>
 				<Dialog.Description>
 					<br />{@html course.description}<br /><br />
+					<div class="flex gap-2">
 					{#if course.sections_avail}
-						<button
+					
+						<button class="bg-blue-900 flex w-1/2 items-center justify-center gap-2 text-white rounded-sm"
 							onclick={() => {
 								const qp = {
 									desc: null,
@@ -117,7 +119,11 @@
 								$queryParams = qp;
 								focused = { course: null, section: null };
 							}}>Search Available Sections</button
-						>{/if}
+						>
+						
+						{/if}<a class="flex-auto bg-red-900 py-1 flex items-center justify-center gap-2 text-white rounded-sm"
+						href={`/course/${course.department}/${course.course_number}`}
+						>View Course <ExternalLink size={18}/></a></div>
 				</Dialog.Description>
 			{:else if section}
 				<Dialog.Title>Are you sure absolutely sure?</Dialog.Title>
