@@ -37,6 +37,9 @@ struct Args {
 
     #[arg(short, long, default_value_t = ("2251,2252,2254".to_string()))]
     term: String,
+
+    #[arg(short, long, default_value_t = ("catalog.db".to_string()))]
+    database_dir: String,
 }
 
 #[tokio::main]
@@ -57,7 +60,7 @@ pub async fn main() {
             .rip_html(&args.letters, Some(args.jump.to_string()), 22, terms)
             .await
             .unwrap();
-        update_database(&args.letters, cache_path, "catalog.db", 22);
+        update_database(&args.letters, cache_path, args.database_dir.as_str(), 22);
     } else {
         if args.scrape {
             println!("Starting catalog scraping with letters: {}", args.letters);
@@ -69,9 +72,9 @@ pub async fn main() {
         }
         if args.parse {
             println!("Starting catalog parsing with letters: {}", args.letters);
-            update_database(&args.letters, cache_path, "catalog.db", 22);
+            update_database(&args.letters, cache_path, args.database_dir.as_str(), 22);
         }
     }
 
-    println!("\nProcessing complete! Took: {:?}", startTime.elapsed());
+    println!("\nProcessing complete! Took: {:?}", start_time.elapsed());
 }

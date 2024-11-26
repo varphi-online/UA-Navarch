@@ -4,6 +4,7 @@ use std::sync::Arc;
 
 pub fn database_init(db_path: &str) -> Arc<ConnectionThreadSafe> {
     let conn = Arc::new(sqlite::Connection::open_thread_safe(db_path).unwrap());
+    conn.execute("DROP TABLE courses; DROP TABLE sections");
     conn.execute(
         "CREATE TABLE IF NOT EXISTS courses (
             hash INTEGER UNIQUE,

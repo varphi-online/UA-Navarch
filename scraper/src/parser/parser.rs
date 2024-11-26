@@ -81,7 +81,7 @@ pub fn update_database(letters: &str, cache_path: &str, db_path: &str, thread_co
 fn parse_course(path: &std::path::PathBuf, path_for_hash: &str) -> Option<Course> {
     if let Ok(html) = std::fs::read_to_string(path) {
         let title = find_by_id(&html, "DERIVED_CRSECAT_DESCR200").unwrap_or_else(|| {
-            println!("title parse fail - {}", path_for_hash);
+            //println!("title parse fail - {}", path_for_hash);
             "Placeholder Placeholder - Fail to parse".to_string()
         });
         let attrs =
@@ -142,7 +142,7 @@ fn parse_course(path: &std::path::PathBuf, path_for_hash: &str) -> Option<Course
 fn parse_section(path: &std::path::PathBuf, path_for_hash: &str) -> Option<Section> {
     if let Ok(html) = std::fs::read_to_string(path) {
         let title = find_by_id(&html, "DERIVED_CLSRCH_DESCR200").unwrap_or_else(|| {
-            println!("title parse fail - {} - {:?}", path_for_hash, path);
+            //println!("title parse fail - {} - {:?}", path_for_hash, path);
             //println!("title parse fail");
             "Placeholder Placeholder - Fail to parse".to_string()
         });

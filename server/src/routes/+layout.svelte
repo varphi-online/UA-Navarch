@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { size } from '@floating-ui/dom';
 	import '../app.css';
 	import { page } from '$app/stores';  
 	import { setContext } from 'svelte';
@@ -12,6 +13,7 @@
 	import SectionCard from '$lib/SectionCard.svelte';
 	import type { QueryParams } from '$lib/queryStore.svelte';
 	import { browser } from '$app/environment';
+	import ArizonaWildcatsLogo from '$lib/Arizona_Wildcats_logo.svelte';
 
 	const queryParams: Writable<QueryParams> = writable(<QueryParams>{
 		desc: null,
@@ -78,12 +80,8 @@
 >{/if}
 
 
-	<div class="flex flex-row justify-center"><a href="/" class="mb-6 mt-16 flex flex-row items-center">
-		<span class="text-5xl font-bold text-[#AB0520]">NAV</span><img
-			src="/Arizona_Wildcats_logo.svg"
-			alt="University of Arizona logo"
-			class="h-16"
-		/><span class="text-5xl font-bold text-[#0C234B]">RCH</span></a>
+	<div class="flex flex-row justify-center h-fit"><a href="/" class="mb-6 h-fit mt-16 flex flex-row items-center">
+		<span class="text-5xl font-bold h-fit text-[#AB0520]">NAV</span><ArizonaWildcatsLogo /><span class="text-5xl font-bold text-[#0C234B]">RCH</span></a>
 	</div>
 
 
@@ -129,3 +127,12 @@
 	</Sheet.Content>
 </Sheet.Root>
 <slot />
+
+<style>
+	:global(svg) {
+		max-width: 80px;
+		max-height: 80px;
+		display: block;
+		margin: 0px;
+	}
+</style>

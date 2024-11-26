@@ -2,7 +2,7 @@
 import { Database } from 'bun:sqlite';
 import { CourseQuery, SectionQuery, Course, Section } from '$lib/query.svelte';
 
-const db = new Database('static/catalog.db', { readonly: true, safeIntegers: true });
+const db = new Database(process.env.DB_PATH ? process.env.DB_PATH : 'static/database/catalog.db', { readonly: true, safeIntegers: true });
 
 export function search_course(
 	course_query: CourseQuery,
