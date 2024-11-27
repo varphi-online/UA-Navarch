@@ -66,6 +66,9 @@
 	setContext('selected', selected);
 	setContext('queryParams', queryParams);
 	setContext('queryResponse', queryResponse);
+	let bodyHeight = $state();
+	let windowHeight = $state();
+	$effect(()=>console.log(bodyHeight))
 </script>
 {#if $page.url.pathname.length>1}
 <a href="/">
@@ -126,7 +129,14 @@
 		</Sheet.Header>
 	</Sheet.Content>
 </Sheet.Root>
-<slot />
+<slot class="grow" />
+
+{#if bodyHeight>windowHeight||$page.url.pathname.length>1}
+<div class="w-full border  border-t-2 border-gray-50 flex justify-center text-xs font-mono gap-3"><p>© {new Date().getFullYear()} Varphi</p><p>|</p><a href="https://varphi.online">varphi.online</a></div>
+{/if}
+
+<svelte:body bind:clientHeight={bodyHeight}/>
+<svelte:window bind:outerHeight={windowHeight}/>
 
 <style>
 	:global(svg) {
