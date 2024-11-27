@@ -66,10 +66,12 @@
 	setContext('selected', selected);
 	setContext('queryParams', queryParams);
 	setContext('queryResponse', queryResponse);
-	let bodyHeight = $state();
-	let windowHeight = $state();
-	$effect(()=>console.log(bodyHeight))
+	let bodyHeight: number = $state();
+	let windowHeight: number = $state();
 </script>
+<svelte:head>
+	<meta name="description" content="A user-friendly course lookup and semester planner via the University of Arizona's public course catalog.">
+</svelte:head>
 {#if $page.url.pathname.length>1}
 <a href="/">
 	<div
