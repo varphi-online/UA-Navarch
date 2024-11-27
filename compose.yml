@@ -1,0 +1,26 @@
+services:
+  scraper:
+    build:
+      context: ./scraper/
+      dockerfile: Dockerfile
+    container_name: NavarchScraper
+    volumes:
+      - ./data:/usr/src/scraper/data:wo
+    tty: true
+    #networks:
+    # - proxy
+    #ports:
+    # - "3000:3000"
+    #
+  server:
+    build:
+      context: ./server/
+      dockerfile: Dockerfile
+    container_name: NavarchServer
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/usr/src/app/static/database:ro
+#networks:
+#  proxy:
+#   external: true

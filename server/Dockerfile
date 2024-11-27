@@ -12,7 +12,8 @@ RUN cd /temp/dev && bun install --frozen-lockfile
 
 # install with --production (exclude devDependencies)
 RUN mkdir -p /temp/prod
-COPY package.json bun.lockb /temp/prod/
+COPY package.json bun.lockb /temp/prod
+
 RUN cd /temp/prod && bun install --frozen-lockfile --production
 
 # copy node_modules from temp directory
@@ -28,6 +29,6 @@ RUN bun run build
 
 # run the app
 USER bun
-ENV DB_PATH=/data/catalog.db
+ENV DB_PATH=/data
 EXPOSE 3000/tcp
 ENTRYPOINT [ "bun", "run", "./build" ]

@@ -3,4 +3,5 @@ test/**/*
 http-cacache/**/*
 db_backup/**/*
 catalog.db
+data/**/*
 

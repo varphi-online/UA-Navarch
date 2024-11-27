@@ -38,8 +38,8 @@ struct Args {
     #[arg(short, long, default_value_t = ("2251,2252,2254".to_string()))]
     term: String,
 
-    #[arg(short, long, default_value_t = ("catalog.db".to_string()))]
-    database_dir: String,
+    #[arg(short, long, default_value_t = (".".to_string()))]
+    dir: String,
 }
 
 #[tokio::main]
@@ -49,7 +49,8 @@ pub async fn main() {
     let terms: Vec<String> = args.term.split(",").map(|s| s.to_string()).collect();
     /*let terms: Vec<String> =
     Vec::from(["2251".to_string(), "2252".to_string(), "2254".to_string()]);*/
-    let cache_path = "./cached_catalog/";
+    let cache_path = &format!("{}/{}", args.dir, "cached_catalog/");
+    let db_path = &format!("{}/catalog.db", args.dir);
     if (args.scrape && args.parse) || (!args.scrape && !args.parse) {
         println!(
             "Starting catalog scraping/parsing with letters: {}, and terms: {}",
@@ -60,7 +61,7 @@ pub async fn main() {
             .rip_html(&args.letters, Some(args.jump.to_string()), 22, terms)
             .await
             .unwrap();
-        update_database(&args.letters, cache_path, args.database_dir.as_str(), 22);
+        update_database(&args.letters, cache_path, db_path, 22);
     } else {
         if args.scrape {
             println!("Starting catalog scraping with letters: {}", args.letters);
@@ -72,7 +73,7 @@ pub async fn main() {
         }
         if args.parse {
             println!("Starting catalog parsing with letters: {}", args.letters);
-            update_database(&args.letters, cache_path, args.database_dir.as_str(), 22);
+            update_database(&args.letters, cache_path, db_path, 22);
         }
     }
 

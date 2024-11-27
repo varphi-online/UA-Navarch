@@ -1,17 +1,43 @@
 FROM rust:1.82-alpine AS builder
-RUN apk add ca-certificates musl-dev openssl-dev pkgconfig libgcc gcompat libstdc++
+#RUN apk add --no-cache ca-certificates musl-dev openssl-dev pkgconfig
+RUN apk add --no-cache \
+    ca-certificates \
+    musl-dev \
+    openssl-dev \
+    pkgconfig \
+    libgcc \
+    libstdc++ \
+    # Add Perl and other build tools
+    perl \
+    make \
+    gcc \
+    # Add SSL/crypto libraries explicitly
+    openssl \
+    openssl-libs-static
+
 WORKDIR /usr/src/scraper
 
 ENV RUST_BACKTRACE=full
+ENV OPENSSL_STATIC=1
+ENV OPENSSL_LIB_DIR=/usr/lib
+ENV OPENSSL_INCLUDE_DIR=/usr/include/openssl
+
 COPY Cargo.toml .
 COPY Cargo.lock .
 # Hack to populate cache
-RUN mkdir src && echo 'fn main() {}' > src/main.rs && \
+
+
+RUN mkdir src && echo 'fn main() {println!("hallo")}' > src/main.rs && \
     cargo build --release
 
-COPY . .
+
+COPY ./src ./src
+
+RUN touch -a -m ./src/main.rs
+
 
 RUN cargo build --release 
+
 
 # Start a fresh image
 FROM alpine
@@ -20,7 +46,13 @@ ENV RUST_BACKTRACE=full
 
 WORKDIR /usr/src/scraper
 
-RUN apk add --no-cache sqlite-libs sqlite
+#RUN apk add --no-cache sqlite-libs sqlite
+
+RUN apk add --no-cache \
+    sqlite-libs \
+    sqlite \
+    libssl3 \
+    libcrypto3
 
 RUN mkdir -p /usr/src/scraper/data
 
@@ -31,4 +63,4 @@ VOLUME ["/usr/src/scraper/data"]
 
 EXPOSE 8080
 
-CMD ["./scraper", "-l", "K"]
+CMD ["./scraper", "-d", "data"]
