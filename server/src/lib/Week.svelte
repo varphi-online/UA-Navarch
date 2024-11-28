@@ -47,7 +47,16 @@
 		class="absolute h-[91%] top-[2%] lg:top-[3.44117%] right-full mr-2 lg:h-[92.917647058%] flex flex-col gap-1"
 	>
 		{#each ['6:00AM', '8:00AM', '10:00AM', '12:00PM', '2:00PM', '4:00PM', '6:00PM', '8:00PM'] as time}
-			<p class="text-right text-[0.65em] h-full p-0">
+			<p class="text-right text-[0.65em] flex-1">
+				{time}
+			</p>
+		{/each}
+	</div>
+	<div
+		class="absolute h-fit w-full bottom-full mb-1.5 flex"
+	>
+		{#each ['Monday','Tuesday','Wednesday','Thursday','Friday'] as time}
+			<p class="text-center text-[0.65em] flex-1">
 				{time}
 			</p>
 		{/each}

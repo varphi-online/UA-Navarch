@@ -69,9 +69,6 @@
 	let bodyHeight: number = $state();
 	let windowHeight: number = $state();
 </script>
-<svelte:head>
-	<meta name="description" content="A user-friendly course lookup and semester planner via the University of Arizona's public course catalog.">
-</svelte:head>
 {#if $page.url.pathname.length>1}
 <a href="/">
 	<div
