@@ -5,22 +5,22 @@ services:
       dockerfile: Dockerfile
     container_name: NavarchScraper
     volumes:
-      - ./data:/usr/src/scraper/data:wo
+      - ./data:/usr/src/scraper/data
     tty: true
-    #networks:
-    # - proxy
-    #ports:
-    # - "3000:3000"
-    #
+    stdin_open: true
+
   server:
     build:
       context: ./server/
       dockerfile: Dockerfile
     container_name: NavarchServer
+    networks:
+      - proxy
     ports:
       - "3000:3000"
     volumes:
-      - ./data:/usr/src/app/static/database:ro
-#networks:
-#  proxy:
-#   external: true
+      - ./data:/usr/src/app/static/database/:ro
+
+networks:
+  proxy:
+   external: true

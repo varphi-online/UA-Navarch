@@ -1,5 +1,4 @@
 FROM rust:1.82-alpine AS builder
-#RUN apk add --no-cache ca-certificates musl-dev openssl-dev pkgconfig
 RUN apk add --no-cache \
     ca-certificates \
     musl-dev \
@@ -30,7 +29,6 @@ COPY Cargo.lock .
 RUN mkdir src && echo 'fn main() {println!("hallo")}' > src/main.rs && \
     cargo build --release
 
-
 COPY ./src ./src
 
 RUN touch -a -m ./src/main.rs
@@ -46,21 +44,22 @@ ENV RUST_BACKTRACE=full
 
 WORKDIR /usr/src/scraper
 
-#RUN apk add --no-cache sqlite-libs sqlite
-
 RUN apk add --no-cache \
     sqlite-libs \
     sqlite \
     libssl3 \
-    libcrypto3
+    libcrypto3 \
+    busybox-suid
 
 RUN mkdir -p /usr/src/scraper/data
 
 COPY --from=builder /usr/src/scraper/target/release/NavarchScraper scraper
 RUN chmod +x scraper
 
-VOLUME ["/usr/src/scraper/data"]
+COPY ./crontab /etc/cron.d/scrape
+RUN crontab /etc/cron.d/scrape
+
 
 EXPOSE 8080
 
-CMD ["./scraper", "-d", "data"]
+CMD ["crond", "-f"]

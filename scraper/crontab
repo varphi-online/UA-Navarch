@@ -1,0 +1,2 @@
+0 21 * * 6 /usr/src/scraper/scraper -d /usr/src/scraper/data
+
