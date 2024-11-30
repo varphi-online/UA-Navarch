@@ -88,8 +88,8 @@
 			{@const section = focused.section}
 			{#if course}
 				<Dialog.Title>{@html course.title}</Dialog.Title>
-				<Dialog.Description>
-					<br />{@html course.description}<br /><br />
+				<Dialog.Description class="max-h-[50vh] flex flex-col gap-2">
+					<p class="overflow-y-auto flex-1"><br />{@html course.description}<br /><br /></p>
 					<div class="flex gap-2">
 					{#if course.sections_avail}
 					

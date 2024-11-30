@@ -9,7 +9,7 @@
 	import { getContext } from 'svelte';
 	import type { QueryParams } from './queryStore.svelte';
 
-	let { offset = $bindable(), limit = 15}: { offset: number; limit?: number} = $props();
+	let { offset = $bindable(), limit = 15 }: { offset: number; limit?: number } = $props();
 	const queryParams: Writable<QueryParams> = getContext('queryParams');
 	const queryResponse: { courses: Course[]; sections: Section[] } = getContext('queryResponse');
 	let firstLoad = true;
@@ -54,16 +54,16 @@
 	);
 
 	function highlight(text: string | null): string {
-    // If text is null or undefined, return an empty string
-    if (text == null) return '';
-    // Check if description is too short
-    if ($queryParams.desc && $queryParams.desc.length < 4) return text;
-    // Escape special regex characters in the description
-    const escapedDesc = $queryParams.desc.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    
-    const regex = new RegExp(`(${escapedDesc})`, 'gi');
-    return text.replace(regex, `<mark>$1</mark>`);
-}
+		// If text is null or undefined, return an empty string
+		if (text == null) return '';
+		// Check if description is too short
+		if ($queryParams.desc && $queryParams.desc.length < 4) return text;
+		// Escape special regex characters in the description
+		const escapedDesc = $queryParams.desc.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+		const regex = new RegExp(`(${escapedDesc})`, 'gi');
+		return text.replace(regex, `<mark>$1</mark>`);
+	}
 
 	async function searchWithDebounce<T>(
 		query: Record<string, any>,
@@ -115,7 +115,7 @@
 			$queryParams.attrs.length > 0 ||
 			$queryParams.daysOfWeek.length > 0 ||
 			($queryParams.instructor && $queryParams.instructor.length > 0) ||
-			($queryParams.class_num && $queryParams.class_num.length > 0)/*||
+			($queryParams.class_num && $queryParams.class_num.length > 0) /*||
 			(activeFilters.includes("term"))*/
 		) {
 			if (currentController) currentController.abort();
@@ -133,26 +133,28 @@
 			currentController = new AbortController();
 
 			if ($queryParams.searchType.value == 'course') {
-				searchWithDebounce<Course>(
-					{ course: course_query },
-					currentController.signal,
-					'course',
-					debounce_time
-				).then((result) => {
+				(async () => {
+					const result = await searchWithDebounce<Course>(
+						{ course: course_query },
+						currentController.signal,
+						'course',
+						debounce_time
+					);
 					result.forEach((course) => (course.description = highlight(course.description)));
-					offset == 0 ? queryResponse.courses = result : queryResponse.courses.push(...result);
+					offset == 0 ? (queryResponse.courses = result) : queryResponse.courses.push(...result);
 					queryResponse.sections = [];
-				});
+				})();
 			} else {
-				searchWithDebounce<Section>(
-					{ section: section_query, course: course_query },
-					currentController.signal,
-					'section',
-					debounce_time
-				).then((result) => {
-					offset == 0 ?  queryResponse.sections = result: queryResponse.sections.push(...result);
+				(async () => {
+					const result = await searchWithDebounce<Section>(
+						{ section: section_query, course: course_query },
+						currentController.signal,
+						'section',
+						debounce_time
+					);
+					offset == 0 ? (queryResponse.sections = result) : queryResponse.sections.push(...result);
 					queryResponse.courses = [];
-				});
+				})();
 			}
 		} else {
 			queryResponse.courses = [];
