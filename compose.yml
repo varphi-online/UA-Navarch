@@ -6,6 +6,8 @@ services:
     container_name: NavarchScraper
     volumes:
       - ./data:/usr/src/scraper/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
     tty: true
     stdin_open: true
 
@@ -19,7 +21,9 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - ./data:/usr/src/app/static/database/:ro
+      - ./data:/data:ro
+      #environment:
+      #DB: "/data"
 
 networks:
   proxy:

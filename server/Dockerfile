@@ -23,12 +23,15 @@ COPY --from=install /temp/dev/node_modules node_modules
 COPY . .
 
 # [optional] tests & build
-ENV DB_PATH=/data/catalog.db
+RUN mkdir /data
+RUN touch /data/catalog.db
+ENV DATA=/data
 ENV NODE_ENV=production
 RUN bun run build
+RUN rm /data/catalog.db
 
 # run the app
 USER bun
-ENV DB_PATH=/data
+ENV DATA=/data
 EXPOSE 3000/tcp
 ENTRYPOINT [ "bun", "run", "./build" ]
