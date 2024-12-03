@@ -9,9 +9,10 @@ Todo:
 
 - [x] Section search
 - [x] Slug route for each class/section
-- [ ] populate select options with departments
+- [x] populate select options with departments
 - [x] style navigator
 - [x] add user store for selected classes/sections
 - [x] Architect: weekly view on selected sections
 - [x] schedule generator
+- [x] add unique <title> for each page
 - [ ] Instructor exclusion in generation options

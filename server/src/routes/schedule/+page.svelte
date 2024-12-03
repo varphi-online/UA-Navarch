@@ -54,6 +54,9 @@
 		}
 	}
 </script>
+<svelte:head>
+   <title>Schedule Builder | Navarch</title>
+</svelte:head>
 
 <div
 	class=" p-50 relative flex h-full w-full flex-col-reverse items-center justify-center gap-4 px-8 lg:flex-row"

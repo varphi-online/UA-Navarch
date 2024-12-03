@@ -26,6 +26,10 @@
 	const selected: { courses: Course[]; sections: Section[] } = getContext('selected');
 </script>
 
+<svelte:head>
+   <title>{course.department} {course.course_number} - {section.section_number} | Navarch</title>
+</svelte:head>
+
 <div class="mb-10 mt-10 flex w-full flex-col items-center gap-20">
 	<div class="flex w-[75%] flex-col justify-start gap-9 lg:w-fit">
 		<div class="w-full flex items-center">

@@ -31,6 +31,9 @@
         tick().then((_)=>{node.scrollLeft = node.scrollWidth});
     }
 </script>
+<svelte:head>
+   <title>{course.department} {course.course_number} - {course.title} | Navarch</title>
+</svelte:head>
 
 <div class="mb-10 mt-10 flex w-full flex-col items-center gap-20">
 	<div class="flex w-[75%] flex-col justify-start gap-6 lg:w-fit">
