@@ -82,8 +82,8 @@
 >{/if}
 
 
-	<div class="flex flex-row justify-center h-fit"><a href="/" class="mb-6 h-fit mt-16 flex flex-row items-center">
-		<span class="text-5xl font-bold h-fit text-[#AB0520]">NAV</span><ArizonaWildcatsLogo /><span class="text-5xl font-bold text-[#0C234B]">RCH</span></a>
+	<div class="flex flex-row justify-center h-fit"><a href="/" class="mb-5 h-fit w-fit mt-16 flex flex-row items-center tracking-tighter">
+		<img src="/favicon.svg" class="h-24 w-24 translate-y-1 -mr-2 z-0"><span class="z-10 text-5xl font-bold h-fit text-[#AB0520]">NAV</span><span class="text-5xl font-bold text-[#0C234B]">ARCH</span></a>
 	</div>
 
 
