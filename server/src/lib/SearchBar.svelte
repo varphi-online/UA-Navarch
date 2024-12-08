@@ -121,7 +121,6 @@
 			firstLoad = false;
 			return;
 		}
-		console.log("search c: " +searching);
 		if (
 			searching
 		) {
@@ -166,7 +165,6 @@
 				})();
 			}
 		} else {
-			console.log("not seatch")
 			queryResponse.courses = [];
 			queryResponse.sections = [];
 		}

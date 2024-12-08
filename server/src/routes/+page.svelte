@@ -34,7 +34,6 @@
 			($queryParams.class_num && $queryParams.class_num.length)
 		)
 	);
-	$effect(()=>(console.log("search p: " +searching)))
 </script>
 
 <svelte:head>
