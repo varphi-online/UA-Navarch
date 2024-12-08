@@ -15,12 +15,26 @@
 	import SectionCard from '$lib/SectionCard.svelte';
 	import { getContext } from 'svelte';
 	let offset: number = $state(0);
+	let loading = $state(false)
+
 	function addLimit() {
 		offset += 20;
 	}
 	let dialogOpen = $derived(focused.course != null || focused.section != null);
 	const queryParams: Writable<QueryParams> = getContext('queryParams');
 	const queryResponse: { courses: Course[]; sections: Section[] } = getContext('queryResponse');
+	let searching: boolean = $derived(
+		!!(
+			($queryParams.desc && $queryParams.desc.length) ||
+			($queryParams.dept && $queryParams.dept.length) ||
+			($queryParams.num && $queryParams.num.length) ||
+			$queryParams.attrs.length ||
+			$queryParams.daysOfWeek.length ||
+			($queryParams.instructor && $queryParams.instructor.length) ||
+			($queryParams.class_num && $queryParams.class_num.length)
+		)
+	);
+	$effect(()=>(console.log("search p: " +searching)))
 </script>
 
 <svelte:head>
@@ -43,9 +57,9 @@
 >
 
 <div class="mb-6 mt-8 flex w-full flex-col items-center gap-8">
-	<SearchBar bind:offset limit={15} />
+	<SearchBar bind:offset limit={15} bind:loading />
 </div>
-{#if queryResponse.sections.length == 0 && queryResponse.courses.length == 0}
+{#if !queryResponse.sections.length && !queryResponse.courses.length && searching&&!loading}
 	<div class="flex w-full justify-center">No results found</div>
 {:else}
 	<div class="grid justify-center gap-6 p-10 sm:grid-cols-1 md:grid-cols-3 lg:grid-cols-5">
@@ -53,13 +67,11 @@
 			{#each queryResponse.courses as result}
 				<CourseCard course={result} bind:focused />
 			{/each}
-			<!--<Button onclick={() => addLimit()}>Try Load More</Button>-->
 		{/if}
 		{#if queryResponse.sections.length > 0}
 			{#each queryResponse.sections as result}
 				<SectionCard section={result} />
 			{/each}
-			<!--<Button onclick={() => addLimit()}>Try Load More</Button>-->
 		{/if}
 	</div>
 {/if}
@@ -88,42 +100,44 @@
 			{@const section = focused.section}
 			{#if course}
 				<Dialog.Title>{@html course.title}</Dialog.Title>
-				<Dialog.Description class="max-h-[50vh] flex flex-col gap-2">
-					<p class="overflow-y-auto flex-1"><br />{@html course.description}<br /><br /></p>
+				<Dialog.Description class="flex max-h-[50vh] flex-col gap-2">
+					<p class="flex-1 overflow-y-auto"><br />{@html course.description}<br /><br /></p>
 					<div class="flex gap-2">
-					{#if course.sections_avail}
-					
-						<button class="bg-blue-900 flex w-1/2 items-center justify-center gap-2 text-white rounded-sm"
-							onclick={() => {
-								const qp = {
-									desc: null,
-									dept: course.department,
-									num: course.course_number,
-									attrs: [],
-									instructor: null,
-									class_num: null,
-									startTime: '05:00',
-									endTime: '22:00',
-									daysOfWeek: [],
-									term: $queryParams.term,
-									filters: [
-										{ value: 'description' },
-										{ value: 'departments' },
-										{ value: 'course_number' },
-										{ value: 'days' },
-										{ value: 'times' },
-										{ value: 'term' }
-									],
-									searchType: { value: 'section', label: 'Sections' }
-								} as QueryParams;
-								$queryParams = qp;
-								focused = { course: null, section: null };
-							}}>Search Available Sections</button
+						{#if course.sections_avail}
+							<button
+								class="flex w-1/2 items-center justify-center gap-2 rounded-sm bg-blue-900 text-white"
+								onclick={() => {
+									const qp = {
+										desc: null,
+										dept: course.department,
+										num: course.course_number,
+										attrs: [],
+										instructor: null,
+										class_num: null,
+										startTime: '05:00',
+										endTime: '22:00',
+										daysOfWeek: [],
+										term: $queryParams.term,
+										filters: [
+											{ value: 'description' },
+											{ value: 'departments' },
+											{ value: 'course_number' },
+											{ value: 'days' },
+											{ value: 'times' },
+											{ value: 'term' }
+										],
+										searchType: { value: 'section', label: 'Sections' }
+									} as QueryParams;
+									$queryParams = qp;
+									focused = { course: null, section: null };
+								}}>Search Available Sections</button
+							>
+						{/if}<a
+							class="flex flex-auto items-center justify-center gap-2 rounded-sm bg-red-900 py-1 text-white"
+							href={`/course/${course.department}/${course.course_number}`}
+							>View Course <ExternalLink size={18} /></a
 						>
-						
-						{/if}<a class="flex-auto bg-red-900 py-1 flex items-center justify-center gap-2 text-white rounded-sm"
-						href={`/course/${course.department}/${course.course_number}`}
-						>View Course <ExternalLink size={18}/></a></div>
+					</div>
 				</Dialog.Description>
 			{:else if section}
 				<Dialog.Title>Are you sure absolutely sure?</Dialog.Title>

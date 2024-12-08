@@ -27,6 +27,7 @@
 	let sections: Section[] = $state([]);
 	let showPage = $state(0);
 
+
 	let terms: string[] = ['Spring 2025', 'Summer 2025', 'Fall 2025'];
 	let term = $state({ value: terms[0], label: terms[0] });
 	let termFiltered: { [key: string]: Section[] } = $derived.by(() => {
@@ -146,7 +147,7 @@
 		<Tabs.Content value="search" class="h-4/6 w-full">
 			<div class=" flex h-full flex-col gap-3">
 				<div class="flex w-full flex-col items-center gap-3">
-					<SearchBar limit={18} offset={0} />
+					<SearchBar limit={18} offset={0} loading={false}/>
 				</div>
 				<div class="grid flex-grow grid-cols-1 gap-2 md:grid-cols-3 lg:grid-cols-3">
 					{#each queryResponse.courses.slice(showPage * 6, showPage * 6 + 6) as course}

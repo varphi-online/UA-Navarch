@@ -9,13 +9,25 @@
 	import { getContext } from 'svelte';
 	import type { QueryParams } from './queryStore.svelte';
 
-	let { offset = $bindable(), limit = 15 }: { offset: number; limit?: number } = $props();
+	let { offset = $bindable(), limit = 15, loading = $bindable(false) }: { offset: number; limit?: number; loading: boolean} = $props();
 	const queryParams: Writable<QueryParams> = getContext('queryParams');
 	const queryResponse: { courses: Course[]; sections: Section[] } = getContext('queryResponse');
 	let firstLoad = true;
 	let activeFilters: string[] = $derived($queryParams.filters.map((filter) => filter.value));
 	// AbortController for Debounce
 	let currentController: AbortController | null = null;
+	let searching: boolean = $derived(
+		!!(
+			($queryParams.desc && $queryParams.desc.length) ||
+			($queryParams.dept && $queryParams.dept.length) ||
+			($queryParams.num && $queryParams.num.length) ||
+			$queryParams.attrs.length ||
+			$queryParams.daysOfWeek.length ||
+			($queryParams.instructor && $queryParams.instructor.length) ||
+			($queryParams.class_num && $queryParams.class_num.length)
+		)
+	);
+	
 	let termState = $state({
 		value: $queryParams.term,
 		label: $queryParams.term
@@ -71,6 +83,7 @@
 		searchType: 'course' | 'section',
 		debounceTime: number = 300
 	): Promise<T[]> {
+		loading = true;
 		try {
 			await new Promise((resolve, reject) => {
 				const timeout = setTimeout(resolve, debounceTime);
@@ -108,15 +121,9 @@
 			firstLoad = false;
 			return;
 		}
+		console.log("search c: " +searching);
 		if (
-			($queryParams.desc && $queryParams.desc.length > 0) ||
-			($queryParams.dept && $queryParams.dept.length > 0) ||
-			($queryParams.num && $queryParams.num.length > 0) ||
-			$queryParams.attrs.length > 0 ||
-			$queryParams.daysOfWeek.length > 0 ||
-			($queryParams.instructor && $queryParams.instructor.length > 0) ||
-			($queryParams.class_num && $queryParams.class_num.length > 0) /*||
-			(activeFilters.includes("term"))*/
+			searching
 		) {
 			if (currentController) currentController.abort();
 			let debounce_time = 300;
@@ -143,6 +150,7 @@
 					result.forEach((course) => (course.description = highlight(course.description)));
 					offset == 0 ? (queryResponse.courses = result) : queryResponse.courses.push(...result);
 					queryResponse.sections = [];
+					loading = false;
 				})();
 			} else {
 				(async () => {
@@ -154,9 +162,11 @@
 					);
 					offset == 0 ? (queryResponse.sections = result) : queryResponse.sections.push(...result);
 					queryResponse.courses = [];
+					loading = false;
 				})();
 			}
 		} else {
+			console.log("not seatch")
 			queryResponse.courses = [];
 			queryResponse.sections = [];
 		}
