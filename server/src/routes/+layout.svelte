@@ -1,19 +1,30 @@
 <script lang="ts">
 	import { size } from '@floating-ui/dom';
 	import '../app.css';
-	import { page } from '$app/stores';  
+	import { page } from '$app/stores';
 	import { setContext } from 'svelte';
 	import { writable, type Writable } from 'svelte/store';
 	import * as Sheet from '$lib/components/ui/sheet';
 	import Button from '$lib/components/ui/button/button.svelte';
-	import {Bookmark, House} from 'lucide-svelte';
+	import { Bookmark, House } from 'lucide-svelte';
 	import CourseCard from '$lib/CourseCard.svelte';
 	import { Course, Section } from '$lib/query.svelte';
 	import { fade } from 'svelte/transition';
 	import SectionCard from '$lib/SectionCard.svelte';
 	import type { QueryParams } from '$lib/queryStore.svelte';
 	import { browser } from '$app/environment';
+	import posthog from 'posthog-js';
 	import ArizonaWildcatsLogo from '$lib/Arizona_Wildcats_logo.svelte';
+
+	export const load = async () => {
+		if (browser) {
+			posthog.init('phc_9tDSPAUFfqVKtotauo2T7C0tLwqMC61OevLHbyehl70', {
+				api_host: 'https://us.i.posthog.com',
+				person_profiles: 'identified_only'
+			});
+		}
+		return;
+	};
 
 	const queryParams: Writable<QueryParams> = writable(<QueryParams>{
 		desc: null,
@@ -69,23 +80,26 @@
 	let bodyHeight: number = $state();
 	let windowHeight: number = $state();
 </script>
-{#if $page.url.pathname.length>1}
-<a href="/">
-	<div
-		class=" cursor fixed left-3 top-3 flex flex-row gap-2 rounded-3xl border-2
+
+{#if $page.url.pathname.length > 1}
+	<a href="/">
+		<div
+			class=" cursor fixed left-3 top-3 flex flex-row gap-2 rounded-3xl border-2
 		border-solid border-slate-500 border-opacity-10 bg-white bg-opacity-75 p-2 transition-all duration-300
 		hover:border-opacity-100 hover:bg-opacity-100"
+		>
+			<House />
+			<p>Home</p>
+		</div></a
+	>{/if}
+
+<div class="flex h-fit flex-row justify-center">
+	<a href="/" class="mb-5 mt-16 flex h-fit w-fit flex-row items-center tracking-tighter">
+		<img src="/favicon.svg" class="z-0 -mr-2 h-24 w-24 translate-y-1" /><span
+			class="z-10 h-fit text-5xl font-bold text-[#AB0520]">NAV</span
+		><span class="text-5xl font-bold text-[#0C234B]">ARCH</span></a
 	>
-		<House />
-		<p>Home</p>
-	</div></a
->{/if}
-
-
-	<div class="flex flex-row justify-center h-fit"><a href="/" class="mb-5 h-fit w-fit mt-16 flex flex-row items-center tracking-tighter">
-		<img src="/favicon.svg" class="h-24 w-24 translate-y-1 -mr-2 z-0"><span class="z-10 text-5xl font-bold h-fit text-[#AB0520]">NAV</span><span class="text-5xl font-bold text-[#0C234B]">ARCH</span></a>
-	</div>
-
+</div>
 
 <Sheet.Root>
 	{#if selected.courses.length != 0 || selected.sections.length != 0}
@@ -130,12 +144,16 @@
 </Sheet.Root>
 <slot class="grow" />
 
-{#if bodyHeight>windowHeight||$page.url.pathname.length>1}
-<div class="w-full border  border-t-2 border-gray-50 flex justify-center text-xs font-mono gap-3"><p>© {new Date().getFullYear()} Varphi</p><p>|</p><a href="https://varphi.online">varphi.online</a></div>
+{#if bodyHeight > windowHeight || $page.url.pathname.length > 1}
+	<div class="flex w-full justify-center gap-3 border border-t-2 border-gray-50 font-mono text-xs">
+		<p>© {new Date().getFullYear()} Varphi</p>
+		<p>|</p>
+		<a href="https://varphi.online">varphi.online</a>
+	</div>
 {/if}
 
-<svelte:body bind:clientHeight={bodyHeight}/>
-<svelte:window bind:outerHeight={windowHeight}/>
+<svelte:body bind:clientHeight={bodyHeight} />
+<svelte:window bind:outerHeight={windowHeight} />
 
 <style>
 	:global(svg) {
