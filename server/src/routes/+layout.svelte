@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { size } from '@floating-ui/dom';
 	import '../app.css';
 	import { page } from '$app/stores';
 	import { setContext } from 'svelte';
@@ -13,18 +12,12 @@
 	import SectionCard from '$lib/SectionCard.svelte';
 	import type { QueryParams } from '$lib/queryStore.svelte';
 	import { browser } from '$app/environment';
-	import posthog from 'posthog-js';
-	import ArizonaWildcatsLogo from '$lib/Arizona_Wildcats_logo.svelte';
+	import { posthog } from 'posthog-js';
 
-	export const load = async () => {
-		if (browser) {
-			posthog.init('phc_9tDSPAUFfqVKtotauo2T7C0tLwqMC61OevLHbyehl70', {
-				api_host: 'https://us.i.posthog.com',
-				person_profiles: 'identified_only'
-			});
-		}
-		return;
-	};
+	posthog.init('phc_9tDSPAUFfqVKtotauo2T7C0tLwqMC61OevLHbyehl70', {
+		api_host: 'https://us.i.posthog.com',
+		person_profiles: 'identified_only' // or 'always' to create profiles for anonymous users as well
+	});
 
 	const queryParams: Writable<QueryParams> = writable(<QueryParams>{
 		desc: null,
