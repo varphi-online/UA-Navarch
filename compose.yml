@@ -1,5 +1,6 @@
 services:
   scraper:
+    restart: always
     build:
       context: ./scraper/
       dockerfile: Dockerfile
@@ -12,6 +13,7 @@ services:
     stdin_open: true
 
   server:
+    restart: always
     build:
       context: ./server/
       dockerfile: Dockerfile
