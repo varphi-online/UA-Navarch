@@ -16,3 +16,4 @@ Todo:
 - [x] schedule generator
 - [x] add unique <title> for each page
 - [ ] Instructor exclusion in generation options
+- [ ] Instructor page

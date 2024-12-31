@@ -9,7 +9,6 @@ export function search_course(
 	course_query: CourseQuery,
 	offset: number = 0,
 	limit: number,
-	exact: boolean = false
 ): Course[] {
 	const params: any[] = [];
 	const conditions: string[] = [];
@@ -17,17 +16,10 @@ export function search_course(
 	// Build base query with prepared statements
 	if (course_query.department) {
 		const lowerDept = course_query.department.toLowerCase();
-		if (exact) {
 			conditions.push(`
                 LOWER(department) = ? `);
 			params.push(lowerDept);
-		} else {
-			conditions.push(`(
-            LOWER(department) = ? OR 
-            (LOWER(department) LIKE ? AND LOWER(department) != ?)
-        )`);
-			params.push(lowerDept, `%${lowerDept}%`, lowerDept);
-		}
+
 	}
 
 	// Map attributes to conditions using a more efficient approach
@@ -126,7 +118,6 @@ export function search_section(
 	course_query: CourseQuery,
 	offset: number = 0,
 	limit: number,
-	exact: boolean = false
 ): Section[] {
 	const params: any[] = [];
 	const conditions: string[] = [];
@@ -134,17 +125,10 @@ export function search_section(
 	// Course-related conditions
 	if (course_query.department) {
 		const lowerDept = course_query.department.toLowerCase();
-		if (exact) {
 			conditions.push(`
                 LOWER(courses.department) = ? `);
 			params.push(lowerDept);
-		} else {
-			conditions.push(`(
-                LOWER(courses.department) = ? OR 
-                (LOWER(courses.department) LIKE ? AND LOWER(courses.department) != ?)
-            )`);
-			params.push(lowerDept, `%${lowerDept}%`, lowerDept);
-		}
+
 	}
 
 	if (course_query.course_number) {
