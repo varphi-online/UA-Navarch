@@ -139,7 +139,7 @@
 
 {#if bodyHeight > windowHeight || $page.url.pathname.length > 1}
 	<div class="flex w-full justify-center gap-3 border border-t-2 border-gray-50 font-mono text-xs">
-		<p>© {new Date().getFullYear()} Varphi</p>
+		<p>© 2024-2025 Varphi</p>
 		<p>|</p>
 		<a href="https://varphi.online">varphi.online</a>
 	</div>
