@@ -29,7 +29,7 @@
 
 
 	let terms: string[] = ['Spring 2025', 'Summer 2025', 'Fall 2025'];
-	let term = $state({ value: terms[0], label: terms[0] });
+	let term = $state({ value: terms[2], label: terms[2] });
 	let termFiltered: { [key: string]: Section[] } = $derived.by(() => {
 		let out = { '': selected.sections };
 		terms.forEach((term) => {

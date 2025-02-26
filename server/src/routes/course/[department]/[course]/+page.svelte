@@ -11,7 +11,7 @@
 	let { data }: { data: PageData } = $props();
 	let course: Course = $derived(data.course_data.at(0));
 	let terms: string[] = ['Spring 2025', 'Summer 2025', 'Fall 2025'];
-	let term = $state({ value: terms[0], label: terms[0] });
+	let term = $state({ value: terms[2], label: terms[2] });
 	let termFiltered: { [key: string]: Section[] } = $derived.by(() => {
 		let out = { '': data.section_data };
 		terms.forEach((term) => {
@@ -21,7 +21,7 @@
 	});
 	$effect(() => {
 		data.section_data;
-		term = { value: terms[0], label: terms[0] };
+		term = { value: terms[2], label: terms[2] };
 	});
 	const to12Hour = time => time.replace(/(\d{2}):(\d{2})/, (_, h, m) => `${h % 12 || 12}:${m}${h < 12 ? 'AM' : 'PM'}`);
 	

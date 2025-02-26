@@ -38,7 +38,7 @@
 			{ value: 'term' }
 		],
 		searchType: { value: 'course', label: 'Courses' },
-		term: 'Spring 2025',
+		term: 'Fall 2025',
 		showHist: false
 	});
 

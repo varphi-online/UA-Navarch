@@ -21,23 +21,27 @@ mod scraper;
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
+    /// Scrape catalog without parsing data
     #[arg(short, long, default_value_t = false)]
     scrape: bool,
 
+    /// Parse pre-scraped data only
     #[arg(short, long, default_value_t = false)]
     parse: bool,
 
-    /// Name of the person to greet
+    /// Capital letter(s) concatenated with no spacing
     #[arg(short, long, default_value_t = ("ABCDEFGHIJKLMNOPRSTUVW".to_string()))]
     letters: String,
 
-    /// Number of times to greet
+    /// Debug flag, meant to skip a number of classes in the event of a failed scrape
     #[arg(short, long, default_value_t = 0)]
     jump: u32,
 
+    /// Integer(s) concatenated with commas that correspond to terms within UA's website
     #[arg(short, long, default_value_t = ("2251,2252,2254".to_string()))]
     term: String,
 
+    /// Root directory to store cached data and the output database file
     #[arg(short, long, default_value_t = (".".to_string()))]
     dir: String,
 }
