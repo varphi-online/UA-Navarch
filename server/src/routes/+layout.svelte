@@ -144,14 +144,14 @@
 	</div>
 	{#if $page.url.pathname.length > 1||bodyHeight > windowHeight}
 		<div
-			class="mt-auto flex w-full justify-center gap-3 border border-t-2 border-gray-50 font-mono text-xs"
+			class="mt-auto py-2 flex flex-col items-center lg:flex-row w-full justify-center gap-1.5 lg:gap-3 border border-t-2 border-gray-50 font-mono text-xs"
 		>
-			<p>© 2024-2025 Varphi</p>
-			<p>|</p>
+			<p>©2024-2025 Varphi</p>
+			<p class="hidden lg:block">|</p>
 			<a href="https://varphi.online">varphi.online</a>
-			<p>|</p>
+			<p class="hidden lg:block">|</p>
 			<a href="/about">About</a>
-			<p>|</p>
+			<p class="hidden lg:block">|</p>
 			<a href="https://github.com/varphi-online/UA-Navarch">Code</a>
 		</div>
 	{/if}

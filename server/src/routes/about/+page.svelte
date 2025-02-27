@@ -10,7 +10,7 @@
 
 <div class=" mt-8 flex w-full flex-col items-center gap-8 mb-10">
 	<h1 class="text-3xl">What is Navarch?</h1>
-	<p class="w-1/3">
+	<p class="w-[80vw] lg:w-1/3">
 		<b>Navarch</b>, a portmanteau of "Navigate" and "Architect" is a replacement tool for the
 		University of Arizona's Class Search feature.<br /><br />
 		It was created due to the poor user experience I had when selecting courses and trying to piece together
@@ -27,7 +27,7 @@
         to help <strong>everyone</strong> with picking classes.
 	</p>
 	<h1 class="text-3xl">FAQ</h1>
-	<ul class="w-1/3 list-disc space-y-4 px-6 text-gray-800">
+	<ul class="w-[80vw] lg:w-1/3 list-disc space-y-4 px-6 text-gray-800">
 		<li>
 			<p>
 				<strong>Q.</strong> When does course information update?<br />
