@@ -16,4 +16,5 @@ export interface QueryParams {
         value: string;
         label: string;
     };
+    showOpen: boolean
 }

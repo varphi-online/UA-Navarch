@@ -15,7 +15,7 @@
 	import SectionCard from '$lib/SectionCard.svelte';
 	import { getContext } from 'svelte';
 	let offset: number = $state(0);
-	let loading = $state(false)
+	let loading = $state(false);
 
 	function addLimit() {
 		offset += 20;
@@ -58,7 +58,7 @@
 <div class="mb-6 mt-8 flex w-full flex-col items-center gap-8">
 	<SearchBar bind:offset limit={15} bind:loading />
 </div>
-{#if !queryResponse.sections.length && !queryResponse.courses.length && searching&&!loading}
+{#if !queryResponse.sections.length && !queryResponse.courses.length && searching && !loading}
 	<div class="flex w-full justify-center">No results found</div>
 {:else}
 	<div class="grid justify-center gap-6 p-10 sm:grid-cols-1 md:grid-cols-3 lg:grid-cols-5">
@@ -69,7 +69,9 @@
 		{/if}
 		{#if queryResponse.sections.length > 0}
 			{#each queryResponse.sections as result}
-				<SectionCard section={result} />
+				{#if (!$queryParams.showOpen)||+result.available_seats !== 0}
+					<SectionCard section={result} />
+				{/if}
 			{/each}
 		{/if}
 	</div>

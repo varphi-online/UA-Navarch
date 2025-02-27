@@ -131,7 +131,7 @@
 					<div transition:fade={{ duration: 200 }}>
 						<Trash
 							onclick={() => {
-								selected.sections = selected.sections = selected.sections.filter(
+								 selected.sections = selected.sections.filter(
 									(c) => c !== section
 								);
 							}}

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Circle, X, ExternalLink, BookmarkPlus } from 'lucide-svelte';
+	import { Circle, X, ExternalLink, BookmarkPlus, Trash } from 'lucide-svelte';
 	import type { Course, Section } from '$lib/query.svelte';
 	import type { PageData } from './$types';
 	import { Progress } from '$lib/components/ui/progress';
@@ -23,40 +23,43 @@
 		data.section_data;
 		term = { value: terms[2], label: terms[2] };
 	});
-	const to12Hour = time => time.replace(/(\d{2}):(\d{2})/, (_, h, m) => `${h % 12 || 12}:${m}${h < 12 ? 'AM' : 'PM'}`);
-	
+	const to12Hour = (time) =>
+		time.replace(/(\d{2}):(\d{2})/, (_, h, m) => `${h % 12 || 12}:${m}${h < 12 ? 'AM' : 'PM'}`);
+
 	import { tick } from 'svelte';
-    
-    function resetScroll(node: HTMLElement) {
-        tick().then((_)=>{node.scrollLeft = node.scrollWidth});
-    }
+
+	function resetScroll(node: HTMLElement) {
+		tick().then((_) => {
+			node.scrollLeft = node.scrollWidth;
+		});
+	}
 </script>
+
 <svelte:head>
-   <title>{course.department} {course.course_number} - {course.title} | Navarch</title>
+	<title>{course.department} {course.course_number} - {course.title} | Navarch</title>
 </svelte:head>
 
 <div class="mb-10 mt-10 flex w-full flex-col items-center gap-20">
 	<div class="flex w-[75%] flex-col justify-start gap-6 lg:w-fit">
-		<div class="w-full flex items-center">
-			
-			<h1 class="text-wrap text-xl font-semibold inline">
+		<div class="flex w-full items-center">
+			<h1 class="inline text-wrap text-xl font-semibold">
 				{@html course.department}
 				{@html course.course_number} - {@html course.title}
 			</h1>
-			{#if !selected.courses.some(s=>s.title==course.title)}
-			<div transition:fade={{ duration: 300 }} class="ml-auto">
-				<BookmarkPlus
-					onclick={() => {
-						selected.courses = [...selected.courses, course];
-					}}
-					class="cursor-pointer"
-				/>
-			</div>
-		{/if}
-	</div>
+			{#if !selected.courses.some((s) => s.title == course.title)}
+				<div transition:fade={{ duration: 300 }} class="ml-auto">
+					<BookmarkPlus
+						onclick={() => {
+							selected.courses = [...selected.courses, course];
+						}}
+						class="cursor-pointer"
+					/>
+				</div>
+			{/if}
+		</div>
 		<div class="flex flex-col lg:flex-row">
 			<div class="flex flex-grow flex-col lg:max-w-[50ch]">
-				{#each Object.entries( { building_connections: { text: 'Building Connections', color: 'blue' }, artist: { text: 'Gen Ed: Artist', color: 'red' },humanist: { text: 'Gen Ed: Humanist', color: 'green' }, natural_scientist: { text: 'Gen Ed: Natural Scientist', color: 'orange' }, social_scientist: { text: 'Gen Ed: Social Scientist', color: 'purple' }, entry_course: { text: 'Entry Course', color: 'yellow' }, exit_course: { text: 'Exit Course', color: 'yellow' } } ) as [key, { text, color }]}
+				{#each Object.entries( { building_connections: { text: 'Building Connections', color: 'blue' }, artist: { text: 'Gen Ed: Artist', color: 'red' }, humanist: { text: 'Gen Ed: Humanist', color: 'green' }, natural_scientist: { text: 'Gen Ed: Natural Scientist', color: 'orange' }, social_scientist: { text: 'Gen Ed: Social Scientist', color: 'purple' }, entry_course: { text: 'Entry Course', color: 'yellow' }, exit_course: { text: 'Exit Course', color: 'yellow' } } ) as [key, { text, color }]}
 					{#if course[key] === 'true'}
 						<h3
 							class="mb-2 inline h-fit w-fit -translate-x-1 rounded-2xl px-2 text-base font-semibold bg-{color}-100"
@@ -120,7 +123,7 @@
 		</div>
 		{#if termFiltered[term.value].length > 0}
 			<div class="rotate-180 overflow-x-scroll" use:resetScroll>
-				<div class="w-fit rotate-180 mb-1">
+				<div class="mb-1 w-fit rotate-180">
 					<Table.Root>
 						<Table.Header class="overflow-visible">
 							<Table.Row>
@@ -129,7 +132,7 @@
 								<Table.Head class="text-center">End Time</Table.Head>
 								<Table.Head class="text-center">Status</Table.Head>
 								<Table.Head>
-									<div class="flex flex-row items-center justify-between w-full">
+									<div class="flex w-full flex-row items-center justify-between">
 										<p>Mo</p>
 										<p>Tu</p>
 										<p>We</p>
@@ -140,7 +143,8 @@
 								<Table.Head>Instructor</Table.Head>
 								<Table.Head>Instruction Mode</Table.Head>
 
-								<Table.Head class="text-right">Enrolled/Capacity</Table.Head>
+								<Table.Head class="text-center">Enrolled/Capacity</Table.Head>
+								<Table.Head class="text-center">Save</Table.Head>
 							</Table.Row>
 						</Table.Header>
 						<Table.Body>
@@ -152,8 +156,10 @@
 										<a
 											href={`/course/${section.department}/${section.course_number}/${section.term.replace(' ', '-')}/${section.section_number}`}
 										>
-										<div class="flex items-center gap-2 justify-center">{section.section_number} <ExternalLink size={12}/></div>
-											
+											<div class="flex items-center justify-center gap-2">
+												{section.section_number}
+												<ExternalLink size={12} />
+											</div>
 										</a>
 									</Table.Cell>
 									<Table.Cell class="text-center">{to12Hour(section.start_time)}</Table.Cell>
@@ -178,7 +184,7 @@
 										</div></Table.Cell
 									>
 									<Table.Cell>
-										<div class="flex flex-row items-center justify-between w-full">
+										<div class="flex w-full flex-row items-center justify-between">
 											{#if section.monday == 'true'}<Circle fill="black" />{:else}<X
 													class="h-4"
 												/>{/if}
@@ -206,6 +212,25 @@
 										/>
 										{section.enrollment_total}/{section.class_capacity}</Table.Cell
 									>
+									<Table.Cell>
+										{#if !selected.sections.some((s) => s.class_number === section.class_number)}
+											<BookmarkPlus
+												onclick={() => {
+													selected.sections = [...selected.sections, section]; // Add section
+												}}
+												class="cursor-pointer"
+											/>
+										{:else}
+											<Trash
+												onclick={() => {
+													selected.sections = selected.sections.filter(
+														(c) => c.class_number !== section.class_number // Remove section
+													);
+												}}
+												class="cursor-pointer"
+											/>
+										{/if}
+									</Table.Cell>
 								</Table.Row>{/each}
 						</Table.Body>
 					</Table.Root>
@@ -218,35 +243,35 @@
 </div>
 
 <style>
-::-webkit-scrollbar {
-    height: 0.5rem;
-}
+	::-webkit-scrollbar {
+		height: 0.5rem;
+	}
 
-::-webkit-scrollbar-thumb {
-    background-color: #b2b2b2;
-    border-radius: 20rem;
-}
+	::-webkit-scrollbar-thumb {
+		background-color: #b2b2b2;
+		border-radius: 20rem;
+	}
 
-/* Buttons */
-::-webkit-scrollbar-button:single-button {
-    display: block;
-    background-size: 10px;
-    background-repeat: no-repeat;
-}
+	/* Buttons */
+	::-webkit-scrollbar-button:single-button {
+		display: block;
+		background-size: 10px;
+		background-repeat: no-repeat;
+	}
 
-/* Left */
-::-webkit-scrollbar-button:single-button:horizontal:decrement {
-    height: 100%;
-    width: 1rem;
-    background-position: 50%;
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' fill='rgb(96, 96, 96)'><path d='M70,20 L40,50 L70,80' stroke='rgb(96, 96, 96)' stroke-width='15' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
-}
+	/* Left */
+	::-webkit-scrollbar-button:single-button:horizontal:decrement {
+		height: 100%;
+		width: 1rem;
+		background-position: 50%;
+		background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' fill='rgb(96, 96, 96)'><path d='M70,20 L40,50 L70,80' stroke='rgb(96, 96, 96)' stroke-width='15' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+	}
 
-/* Right */
-::-webkit-scrollbar-button:single-button:horizontal:increment {
-    height: 100%;
-    width: 1rem;
-    background-position: 50%;
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' fill='rgb(96, 96, 96)'><path d='M30,20 L60,50 L30,80' stroke='rgb(96, 96, 96)' stroke-width='15' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
-}
+	/* Right */
+	::-webkit-scrollbar-button:single-button:horizontal:increment {
+		height: 100%;
+		width: 1rem;
+		background-position: 50%;
+		background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' fill='rgb(96, 96, 96)'><path d='M30,20 L60,50 L30,80' stroke='rgb(96, 96, 96)' stroke-width='15' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+	}
 </style>

@@ -34,7 +34,7 @@
 	<div class="flex w-[75%] flex-col justify-start gap-9 lg:w-fit">
 		<div class="w-full flex items-center">
 			
-				<h1 class="text-wrap text-xl font-semibold inline"><a  href={`/course/${course.department}/${course.course_number}`}>
+				<h1 class="text-wrap text-xl font-semibold inline"><a class="underline" href={`/course/${course.department}/${course.course_number}`}>
 					{@html course.department}
 					{@html course.course_number} - {@html course.title}</a> - Section {@html section.section_number}
 				</h1>

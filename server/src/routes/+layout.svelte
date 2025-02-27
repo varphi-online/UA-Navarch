@@ -39,7 +39,8 @@
 		],
 		searchType: { value: 'course', label: 'Courses' },
 		term: 'Fall 2025',
-		showHist: false
+		showHist: false,
+		showOpen: false
 	});
 
 	let getSaveData = (): { courses: Course[]; sections: Section[] } => {
@@ -61,6 +62,8 @@
 		sections: []
 	});
 
+	let { children } = $props();
+
 	$effect(() => {
 		if (browser) {
 			localStorage.setItem('saved', JSON.stringify(selected));
@@ -74,77 +77,85 @@
 	let windowHeight: number = $state();
 </script>
 
-{#if $page.url.pathname.length > 1}
-	<a href="/">
-		<div
-			class=" cursor fixed left-3 top-3 flex flex-row gap-2 rounded-3xl border-2
+<div class="relative flex min-h-[100vh] flex-col content-evenly">
+	<div>
+		{#if $page.url.pathname.length > 1}
+			<a href="/">
+				<div
+					class=" cursor fixed left-3 top-3 flex flex-row gap-2 rounded-3xl border-2
 		border-solid border-slate-500 border-opacity-10 bg-white bg-opacity-75 p-2 transition-all duration-300
 		hover:border-opacity-100 hover:bg-opacity-100"
-		>
-			<House />
-			<p>Home</p>
-		</div></a
-	>{/if}
+				>
+					<House />
+					<p>Home</p>
+				</div></a
+			>{/if}
 
-<div class="flex h-fit flex-row justify-center">
-	<a href="/" class="mb-5 mt-16 flex h-fit w-fit flex-row items-center tracking-tighter">
-		<img src="/favicon.svg" class="z-0 -mr-2 h-24 w-24 translate-y-1" /><span
-			class="z-10 h-fit text-5xl font-bold text-[#AB0520]">NAV</span
-		><span class="text-5xl font-bold text-[#0C234B]">ARCH</span></a
-	>
-</div>
+		<div class="flex h-fit flex-row justify-center">
+			<a href="/" class="mb-5 mt-16 flex h-fit w-fit flex-row items-center tracking-tighter">
+				<img src="/favicon.svg" class="z-0 -mr-2 h-24 w-24 translate-y-1" alt="Navarch Logo: A ship vector ship wheel in colors of the University of Arizona"/><span
+					class="z-10 h-fit text-5xl font-bold text-[#AB0520]">NAV</span
+				><span class="text-5xl font-bold text-[#0C234B]">ARCH</span></a
+			>
+		</div>
 
-<Sheet.Root>
-	{#if selected.courses.length != 0 || selected.sections.length != 0}
-		<div transition:fade>
-			<Sheet.Trigger
-				class=" fixed right-3  top-3 z-50 flex flex-row gap-2 rounded-3xl 
+		<Sheet.Root>
+			{#if selected.courses.length != 0 || selected.sections.length != 0}
+				<div transition:fade>
+					<Sheet.Trigger
+						class=" fixed right-3  top-3 z-50 flex flex-row gap-2 rounded-3xl 
 				border-2 border-solid border-slate-500 border-opacity-10 bg-white bg-opacity-75 p-2 transition-all
 				duration-300 hover:border-opacity-100 hover:bg-opacity-100"
-			>
-				<p>Saved Items</p>
-				<Bookmark />
-			</Sheet.Trigger>
+					>
+						<p>Saved Items</p>
+						<Bookmark />
+					</Sheet.Trigger>
+				</div>
+			{/if}
+			<Sheet.Content class="pr-2">
+				<Sheet.Header>
+					<Sheet.Title>Saved Items</Sheet.Title>
+					<Sheet.Description>
+						<div class="flex h-[90cqh] flex-col overflow-y-auto pr-2">
+							{#if selected.courses.length > 0}
+								<h1>Courses</h1>
+								<div class="flex flex-col gap-3">
+									{#each selected.courses as course}
+										<CourseCard {course} small={true} />{/each}
+								</div>
+							{/if}
+							{#if selected.sections.length > 0}
+								<h1>Sections</h1>
+								<div class="flex flex-col gap-3">
+									{#each selected.sections as section}
+										<SectionCard {section} small={true} />
+									{/each}
+								</div>
+							{/if}
+							{#if selected.courses.length == 0 && selected.sections.length == 0}
+								<p>No saved courses or sections!</p>
+							{/if}
+						</div>
+					</Sheet.Description>
+				</Sheet.Header>
+			</Sheet.Content>
+		</Sheet.Root>
+		{@render children?.()}
+	</div>
+	{#if $page.url.pathname.length > 1||bodyHeight > windowHeight}
+		<div
+			class="mt-auto flex w-full justify-center gap-3 border border-t-2 border-gray-50 font-mono text-xs"
+		>
+			<p>© 2024-2025 Varphi</p>
+			<p>|</p>
+			<a href="https://varphi.online">varphi.online</a>
+			<p>|</p>
+			<a href="/about">About</a>
+			<p>|</p>
+			<a href="https://github.com/varphi-online/UA-Navarch">Code</a>
 		</div>
 	{/if}
-	<Sheet.Content class="pr-2">
-		<Sheet.Header>
-			<Sheet.Title>Saved Items</Sheet.Title>
-			<Sheet.Description>
-				<div class="flex h-[90cqh] flex-col overflow-y-auto pr-2">
-					{#if selected.courses.length > 0}
-						<h1>Courses</h1>
-						<div class="flex flex-col gap-3">
-							{#each selected.courses as course}
-								<CourseCard {course} small={true} />{/each}
-						</div>
-					{/if}
-					{#if selected.sections.length > 0}
-						<h1>Sections</h1>
-						<div class="flex flex-col gap-3">
-							{#each selected.sections as section}
-								<SectionCard {section} small={true} />
-							{/each}
-						</div>
-					{/if}
-					{#if selected.courses.length == 0 && selected.sections.length == 0}
-						<p>No saved courses or sections!</p>
-					{/if}
-				</div>
-			</Sheet.Description>
-		</Sheet.Header>
-	</Sheet.Content>
-</Sheet.Root>
-<slot class="grow" />
-
-{#if bodyHeight > windowHeight || $page.url.pathname.length > 1}
-	<div class="flex w-full justify-center gap-3 border border-t-2 border-gray-50 font-mono text-xs">
-		<p>© 2024-2025 Varphi</p>
-		<p>|</p>
-		<a href="https://varphi.online">varphi.online</a>
-	</div>
-{/if}
-
+</div>
 <svelte:body bind:clientHeight={bodyHeight} />
 <svelte:window bind:outerHeight={windowHeight} />
 

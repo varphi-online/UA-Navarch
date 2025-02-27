@@ -9,6 +9,9 @@
 	import type { Writable } from 'svelte/store';
 	import { getContext } from 'svelte';
 	import type { QueryParams } from './queryStore.svelte';
+	import Label from './components/ui/label/label.svelte';
+	import Switch from './components/ui/switch/switch.svelte';
+	import { fade } from 'svelte/transition';
 
 	let {
 		offset = $bindable(),
@@ -217,7 +220,6 @@
 			</div>{/if}
 		{#if activeFilters.includes('departments')}
 			<div class="h-fit" transition:grow>
-				
 				<Combobox
 					options={[
 						{ value: 'ABBS', label: 'ABBS - AZ Biological & Biomedical Sci' },
@@ -571,6 +573,7 @@
 				</div>
 			</div>
 		{/if}
+
 		<Select.Root multiple bind:selected={$queryParams.filters}>
 			<Select.Trigger class="h-full w-10 rounded-br-2xl rounded-tr-2xl border-none [&>*]:hidden">
 				<Filter class="!block h-7 w-7 opacity-50" />
@@ -588,7 +591,14 @@
 				{/if}
 				<Select.Item value="term">Term</Select.Item>
 				<Select.Item value="showHist">Show History</Select.Item>
+				
 			</Select.Content>
 		</Select.Root>
 	</div>
 </div>
+{#if $queryParams.searchType.value == 'section'}
+				<div transition:fade class="flex justify-center items-center gap-2 -mt-5">
+					<Switch id="showOpenClasses" bind:checked={$queryParams.showOpen} />
+					<Label for="showOpenClasses">Open classes only</Label>
+				</div>
+{/if}
