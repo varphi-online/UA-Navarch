@@ -1,11 +1,9 @@
 use super::database::*;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use regex::Regex;
-use sha2::{Sha256, Digest};
+use sha2::{Digest, Sha256};
 use std::sync::Arc;
 use std::thread::{spawn, JoinHandle};
-
-
 
 pub fn update_database(letters: &str, cache_path: &str, db_path: &str, thread_count: usize) {
     let connection = database_init(db_path);
@@ -43,7 +41,15 @@ pub fn update_database(letters: &str, cache_path: &str, db_path: &str, thread_co
                                 course = parse_course(&item, &path);
                             } else if let Ok(sub_dir) = std::fs::read_dir(item) {
                                 for sub_item in sub_dir {
-                                    sections.push(parse_section(&sub_item.unwrap().path(), &path));
+                                    let section = sub_item.unwrap().path();
+                                    let section_path =
+                                        &section.to_str().expect("this doesnt have a path?");
+                                    //println!("secpath: {} cp:{}", section_path, path);
+                                    sections.push(parse_section(
+                                        &section,
+                                        section_path,
+                                        path.as_str(),
+                                    ));
                                 }
                             }
                         }
@@ -141,7 +147,11 @@ fn parse_course(path: &std::path::PathBuf, path_for_hash: &str) -> Option<Course
     }
 }
 
-fn parse_section(path: &std::path::PathBuf, path_for_hash: &str) -> Option<Section> {
+fn parse_section(
+    path: &std::path::PathBuf,
+    path_for_hash: &str,
+    c_path_for_hash: &str,
+) -> Option<Section> {
     if let Ok(html) = std::fs::read_to_string(path) {
         let title = find_by_id(&html, "DERIVED_CLSRCH_DESCR200").unwrap_or_else(|| {
             //println!("title parse fail - {} - {:?}", path_for_hash, path);
@@ -177,7 +187,8 @@ fn parse_section(path: &std::path::PathBuf, path_for_hash: &str) -> Option<Secti
 
         //println!("{:?}{:?}{:?}{:?}", t_split, e_split, d_split, m_split);
         Some(Section {
-            hash: Some(calculate_hash(&path_for_hash.to_string())),
+            hash: Some(calculate_hash(&path_for_hash)), // Use the section's actual path for its hash
+            course_hash: Some(calculate_hash(&c_path_for_hash.to_string())), // Store the course's hash as a reference
             department: Some(dept),
             course_number: Some(cn),
             class_number: find_by_id(&html, "SSR_CLS_DTL_WRK_CLASS_NBR"),
@@ -323,6 +334,7 @@ pub struct Course {
 #[derive(Clone, Default, Debug)]
 pub struct Section {
     pub hash: Option<i64>,
+    pub course_hash: Option<i64>,
     pub class_number: Option<String>,
     pub department: Option<String>,
     pub course_number: Option<String>,

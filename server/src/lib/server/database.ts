@@ -74,16 +74,16 @@ export function search_course(
 						}
         ),
         course_sections AS (
-            SELECT DISTINCT hash
+            SELECT DISTINCT hash, course_hash
             FROM sections
-            WHERE hash IN (SELECT hash FROM filtered_courses)
+            WHERE course_hash IN (SELECT hash FROM filtered_courses)
             ${course_query.term ? 'AND term = ?' : ''}
         )
         SELECT 
             c.*,
-            CASE WHEN s.hash IS NOT NULL THEN 1 ELSE 0 END as has_sections
+            CASE WHEN s.course_hash IS NOT NULL THEN 1 ELSE 0 END as has_sections
         FROM filtered_courses c
-        LEFT JOIN course_sections s ON c.hash = s.hash
+        LEFT JOIN course_sections s ON c.hash = s.course_hash
         ${!course_query.showHist ? 'WHERE s.hash IS NOT NULL' : ''}
         LIMIT ? OFFSET ?
     `;
@@ -225,7 +225,7 @@ export function search_section(
                 courses.description as course_description,
                 courses.title as course_title
             FROM sections
-            JOIN courses ON sections.hash = courses.hash
+            JOIN courses ON sections.course_hash = courses.hash
             WHERE ${conditions.length ? conditions.join(' AND ') : '1=1'}
             ${
 							course_query.description

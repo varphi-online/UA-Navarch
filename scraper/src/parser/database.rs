@@ -30,6 +30,7 @@ pub fn database_init(db_path: &str) -> Arc<ConnectionThreadSafe> {
     conn.execute(
         "CREATE TABLE IF NOT EXISTS sections (
             hash INTEGER,
+            course_hash INTEGER,
             class_number TEXT,
             department TEXT,
             course_number TEXT,
@@ -118,12 +119,13 @@ pub fn db_course_write(details: &Course, connection: &Arc<ConnectionThreadSafe>)
 pub fn db_section_write(details: &Section, connection: &Arc<ConnectionThreadSafe>) {
     //println!("{:?}", details);
     let query = "INSERT OR REPLACE INTO sections
-        (hash, class_number, department, course_number, section_number, term, status, session, class_components, instruction_mode, class_type, academic_career, start_date, end_date, grading, location, campus, monday, tuesday, wednesday, thursday, friday, start_time, end_time, instructor, class_capacity, enrollment_total, available_seats)
-            VALUES (:h,:class_number, :department, :course_number, :section_number, :term, :status, :session, :class_components, :instruction_mode, :class_type, :academic_career, :start_date, :end_date, :grading, :location, :campus, :monday, :tuesday, :wednesday, :thursday, :friday, :start_time, :end_time, :instructor, :class_capacity, :enrollment_total, :available_seats)";
+        (hash, course_hash, class_number, department, course_number, section_number, term, status, session, class_components, instruction_mode, class_type, academic_career, start_date, end_date, grading, location, campus, monday, tuesday, wednesday, thursday, friday, start_time, end_time, instructor, class_capacity, enrollment_total, available_seats)
+            VALUES (:h, :course_hash, :class_number, :department, :course_number, :section_number, :term, :status, :session, :class_components, :instruction_mode, :class_type, :academic_career, :start_date, :end_date, :grading, :location, :campus, :monday, :tuesday, :wednesday, :thursday, :friday, :start_time, :end_time, :instructor, :class_capacity, :enrollment_total, :available_seats)";
     let db = connection;
     if let Ok(mut statement) = db.prepare(query) {
         match statement.bind_iter::<_, (_, sqlite::Value)>([
             (":h", details.hash.into()),
+            (":course_hash", details.course_hash.into()),
             (":class_number", details.class_number.clone().into()),
             (":department", details.department.clone().into()),
             (":course_number", details.course_number.clone().into()),
