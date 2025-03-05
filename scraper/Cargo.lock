@@ -16,6 +16,7 @@ dependencies = [
  "reqwest",
  "reqwest-middleware",
  "serde_json",
+ "sha2",
  "sqlite",
  "tokio",
 ]

@@ -15,4 +15,5 @@ html5ever = "0.29.0"
 clap = { version = "4.5.20", features = ["derive"] }
 http-cache-reqwest = "0.14.0"
 reqwest-middleware = "0.3.3"
+sha2 = "0.10.8"
 openssl = { version = "0.10", features = ["vendored"] }

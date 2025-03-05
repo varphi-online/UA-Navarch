@@ -1,9 +1,11 @@
 use super::database::*;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use regex::Regex;
-use std::hash::{DefaultHasher, Hash, Hasher};
+use sha2::{Sha256, Digest};
 use std::sync::Arc;
 use std::thread::{spawn, JoinHandle};
+
+
 
 pub fn update_database(letters: &str, cache_path: &str, db_path: &str, thread_count: usize) {
     let connection = database_init(db_path);
@@ -99,7 +101,7 @@ fn parse_course(path: &std::path::PathBuf, path_for_hash: &str) -> Option<Course
         );
 
         Some(Course {
-            hash: Some(calculate_hash(&path_for_hash.to_string()) as i64),
+            hash: Some(calculate_hash(&path_for_hash.to_string())),
             department: Some(dept),
             course_number: Some(cn),
             title: Some(split[3..].join(" ").trim().to_string()),
@@ -175,7 +177,7 @@ fn parse_section(path: &std::path::PathBuf, path_for_hash: &str) -> Option<Secti
 
         //println!("{:?}{:?}{:?}{:?}", t_split, e_split, d_split, m_split);
         Some(Section {
-            hash: Some(calculate_hash(&path_for_hash.to_string()) as i64),
+            hash: Some(calculate_hash(&path_for_hash.to_string())),
             department: Some(dept),
             course_number: Some(cn),
             class_number: find_by_id(&html, "SSR_CLS_DTL_WRK_CLASS_NBR"),
@@ -262,10 +264,18 @@ fn find_by_id(html: &str, id: &str) -> Option<String> {
         .map(|m| m.as_str().to_string())
 }
 
-fn calculate_hash<T: Hash>(t: &T) -> u64 {
-    let mut s = DefaultHasher::new();
-    t.hash(&mut s);
-    s.finish()
+fn calculate_hash(path: &str) -> i64 {
+    let mut hasher = Sha256::new();
+    hasher.update(path);
+    let result = hasher.finalize();
+
+    // Take the first 8 bytes of the SHA256 hash and convert to i64
+    let bytes = &result[0..8];
+    let mut array = [0u8; 8];
+    array.copy_from_slice(bytes);
+
+    // Convert to i64
+    i64::from_le_bytes(array)
 }
 
 pub fn convert_time_format(time_str: &str) -> String {
