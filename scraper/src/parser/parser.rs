@@ -38,17 +38,12 @@ pub fn update_database(letters: &str, cache_path: &str, db_path: &str, thread_co
                         for item in read_dir {
                             let item = item.unwrap().path();
                             if item.is_file() {
-                                course = parse_course(&item, &path);
+                                course = parse_course(&item);
                             } else if let Ok(sub_dir) = std::fs::read_dir(item) {
                                 for sub_item in sub_dir {
                                     let section = sub_item.unwrap().path();
-                                    let section_path =
-                                        &section.to_str().expect("this doesnt have a path?");
-                                    //println!("secpath: {} cp:{}", section_path, path);
                                     sections.push(parse_section(
-                                        &section,
-                                        section_path,
-                                        path.as_str(),
+                                        &section
                                     ));
                                 }
                             }
@@ -86,7 +81,7 @@ pub fn update_database(letters: &str, cache_path: &str, db_path: &str, thread_co
     }
 }
 
-fn parse_course(path: &std::path::PathBuf, path_for_hash: &str) -> Option<Course> {
+fn parse_course(path: &std::path::PathBuf) -> Option<Course> {
     if let Ok(html) = std::fs::read_to_string(path) {
         let title = find_by_id(&html, "DERIVED_CRSECAT_DESCR200").unwrap_or_else(|| {
             //println!("title parse fail - {}", path_for_hash);
@@ -107,7 +102,7 @@ fn parse_course(path: &std::path::PathBuf, path_for_hash: &str) -> Option<Course
         );
 
         Some(Course {
-            hash: Some(calculate_hash(&path_for_hash.to_string())),
+            hash: Some(calculate_hash(&format!("{} {}",&dept,&cn))),
             department: Some(dept),
             course_number: Some(cn),
             title: Some(split[3..].join(" ").trim().to_string()),
@@ -149,8 +144,6 @@ fn parse_course(path: &std::path::PathBuf, path_for_hash: &str) -> Option<Course
 
 fn parse_section(
     path: &std::path::PathBuf,
-    path_for_hash: &str,
-    c_path_for_hash: &str,
 ) -> Option<Section> {
     if let Ok(html) = std::fs::read_to_string(path) {
         let title = find_by_id(&html, "DERIVED_CLSRCH_DESCR200").unwrap_or_else(|| {
@@ -187,8 +180,8 @@ fn parse_section(
 
         //println!("{:?}{:?}{:?}{:?}", t_split, e_split, d_split, m_split);
         Some(Section {
-            hash: Some(calculate_hash(&path_for_hash)), // Use the section's actual path for its hash
-            course_hash: Some(calculate_hash(&c_path_for_hash.to_string())), // Store the course's hash as a reference
+            hash: Some(calculate_hash(&format!("{} {}-{}",&dept,&cn,find_by_id(&html, "SSR_CLS_DTL_WRK_CLASS_NBR").unwrap_or("SECTIONNOTFOUND".to_string())))), // Use the section's actual path for its hash
+            course_hash: Some(calculate_hash(&format!("{} {}",&dept,&cn))), // Store the course's hash as a reference
             department: Some(dept),
             course_number: Some(cn),
             class_number: find_by_id(&html, "SSR_CLS_DTL_WRK_CLASS_NBR"),
