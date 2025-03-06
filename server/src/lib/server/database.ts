@@ -16,10 +16,8 @@ export function search_course(
 	// Build base query with prepared statements
 	if (course_query.department) {
 		const lowerDept = course_query.department.toLowerCase();
-			conditions.push(`
-                LOWER(department) = ? `);
+			conditions.push(`LOWER(department) = ?`);
 			params.push(lowerDept);
-
 	}
 
 	// Map attributes to conditions using a more efficient approach
@@ -60,26 +58,21 @@ export function search_course(
             SELECT * 
             FROM courses 
             WHERE ${conditions.length ? conditions.join(' AND ') : '1=1'}
-            ${
-							course_query.description
-								? `
-                ORDER BY 
+            ${course_query.description? 
+			   `ORDER BY 
                 CASE 
                     WHEN LOWER(department) = ? THEN 0
                     WHEN LOWER(department) LIKE ? THEN 1
                     ELSE 2
-                END
-            `
-								: ''
-						}
-        ),
+                END`
+			: ''}),
+
         course_sections AS (
-            SELECT DISTINCT hash, course_hash
+            SELECT hash, course_hash
             FROM sections
             WHERE course_hash IN (SELECT hash FROM filtered_courses)
-            ${course_query.term ? 'AND term = ?' : ''}
-        )
-        SELECT 
+            ${course_query.term ? 'AND term = ?' : ''})
+        SELECT DISTINCT
             c.*,
             CASE WHEN s.course_hash IS NOT NULL THEN 1 ELSE 0 END as has_sections
         FROM filtered_courses c

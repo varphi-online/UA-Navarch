@@ -18,7 +18,7 @@
 	let loading = $state(false);
 
 	function addLimit() {
-		offset += 20;
+		offset += 15;
 	}
 	let dialogOpen = $derived(focused.course != null || focused.section != null);
 	const queryParams: Writable<QueryParams> = getContext('queryParams');
