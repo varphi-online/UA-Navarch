@@ -1,6 +1,6 @@
 services:
   scraper:
-    restart: always
+    restart: unless-stopped
     build:
       context: ./scraper/
       dockerfile: Dockerfile
@@ -15,7 +15,7 @@ services:
     mem_limit: 150m
 
   server:
-    restart: always
+    restart: unless-stopped
     build:
       context: ./server/
       dockerfile: Dockerfile
@@ -31,4 +31,4 @@ services:
 
 networks:
   proxy:
-   external: true
+    external: true
