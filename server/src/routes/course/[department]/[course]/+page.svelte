@@ -7,10 +7,11 @@
 	import * as Select from '$lib/components/ui/select';
 	import { fade } from 'svelte/transition';
 	import { getContext } from 'svelte';
+	import { TERMS } from '$lib/consts';
 	const selected: { courses: Course[]; sections: Section[] } = getContext('selected');
 	let { data }: { data: PageData } = $props();
 	let course: Course = $derived(data.course_data.at(0));
-	let terms: string[] = ['Spring 2025', 'Summer 2025', 'Fall 2025'];
+	let terms: string[] = [...TERMS];
 	let term = $state({ value: terms[2], label: terms[2] });
 	let termFiltered: { [key: string]: Section[] } = $derived.by(() => {
 		let out = { '': data.section_data };

@@ -12,6 +12,7 @@
 	import Label from './components/ui/label/label.svelte';
 	import Switch from './components/ui/switch/switch.svelte';
 	import { fade } from 'svelte/transition';
+	import { TERMS } from './consts';
 
 	let {
 		offset = $bindable(),
@@ -536,9 +537,9 @@
 						<Select.Value class="overflow-hidden" placeholder="Course Attribute(s)" />
 					</Select.Trigger>
 					<Select.Content>
-						<Select.Item value="Spring 2025">Spring 2025</Select.Item>
-						<Select.Item value="Summer 2025">Summer 2025</Select.Item>
-						<Select.Item value="Fall 2025">Fall 2025</Select.Item>
+						{#each TERMS as term}
+							<Select.Item value={term}>{term}</Select.Item>
+						{/each}
 					</Select.Content>
 				</Select.Root>
 			</div>

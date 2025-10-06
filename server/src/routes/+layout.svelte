@@ -13,6 +13,7 @@
 	import type { QueryParams } from '$lib/queryStore.svelte';
 	import { browser } from '$app/environment';
 	import { posthog } from 'posthog-js';
+	import { TERMS } from '$lib/consts';
 
 	posthog.init('phc_9tDSPAUFfqVKtotauo2T7C0tLwqMC61OevLHbyehl70', {
 		api_host: 'https://us.i.posthog.com',
@@ -38,7 +39,7 @@
 			{ value: 'term' }
 		],
 		searchType: { value: 'course', label: 'Courses' },
-		term: 'Fall 2025',
+		term: TERMS[TERMS.length-1],
 		showHist: false,
 		showOpen: false
 	});

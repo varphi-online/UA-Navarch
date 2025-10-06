@@ -15,6 +15,7 @@
 	import Generator from '$lib/Generator.svelte';
 	import CourseCard from '$lib/CourseCard.svelte';
 	import { Separator } from '$lib/components/ui/separator';
+	import { TERMS } from '$lib/consts';
 
 	const selected: { courses: Course[]; sections: Section[] } = getContext('selected');
 	const queryResponse: { courses: Course[]; sections: Section[] } = getContext('queryResponse');
@@ -28,7 +29,7 @@
 	let showPage = $state(0);
 
 
-	let terms: string[] = ['Spring 2025', 'Summer 2025', 'Fall 2025'];
+	let terms: string[] = [...TERMS];
 	let term = $state({ value: terms[2], label: terms[2] });
 	let termFiltered: { [key: string]: Section[] } = $derived.by(() => {
 		let out = { '': selected.sections };
