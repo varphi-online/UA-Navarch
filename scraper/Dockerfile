@@ -62,4 +62,4 @@ RUN crontab /etc/cron.d/scrape
 
 EXPOSE 8080
 
-CMD ["crond", "-f"]
+CMD busybox sh -c "crond -f -l 8 >> /usr/src/scraper/data/cron.log 2>&1"

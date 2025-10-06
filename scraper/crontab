@@ -1,1 +1,1 @@
-0 21 * * 6 /usr/src/scraper/scraper -d /usr/src/scraper/data -t 2251,2252,2254 
+0 21 * * 6 /usr/src/scraper/scraper -d /usr/src/scraper/data -t 2252,2254,2261

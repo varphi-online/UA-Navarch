@@ -11,7 +11,7 @@ services:
       - /etc/localtime:/etc/localtime:ro
     tty: true
     stdin_open: true
-    cpus: '2'
+    cpus: "2"
     mem_limit: 400m
 
   server:
@@ -24,6 +24,8 @@ services:
       - proxy
     ports:
       - "3000:3000"
+    mem_limit: 400m
+    cpus: "1"
     volumes:
       - ./data:/data:ro
       #environment:
